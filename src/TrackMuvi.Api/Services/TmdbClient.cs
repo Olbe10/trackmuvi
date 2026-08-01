@@ -19,7 +19,10 @@ public class TmdbClient(HttpClient httpClient, IOptions<TmdbOptions> options) : 
     public Task<TmdbMovieListResponse> DiscoverMoviesByDateRangeAsync(DateOnly from, DateOnly to, int page, CancellationToken ct) =>
         GetAsync<TmdbMovieListResponse>(
             "discover/movie" +
-            $"?sort_by=primary_release_date.asc" +
+            // popularity.desc en vez de primary_release_date.asc: TMDb tiene cientos de estrenos
+            // obscuros/festivaleros por mes, y con solo 2 páginas (40 resultados) ordenar por fecha
+            // los agotaba en los primeros 3-4 días del mes, dejando el resto sin datos.
+            $"?sort_by=popularity.desc" +
             $"&with_release_type={Uri.EscapeDataString("2|3")}" +
             $"&primary_release_date.gte={from:yyyy-MM-dd}" +
             $"&primary_release_date.lte={to:yyyy-MM-dd}" +
