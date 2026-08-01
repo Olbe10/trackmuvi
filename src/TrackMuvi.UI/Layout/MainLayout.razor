@@ -1,0 +1,24 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+@implements IDisposable
+
+<div class="mobile-device">
+    <div class="scroll-content">
+        @Body
+    </div>
+    @if (!IsDetailRoute)
+    {
+        <BottomNav />
+    }
+</div>
+
+@code {
+    private bool IsDetailRoute => Nav.ToBaseRelativePath(Nav.Uri).StartsWith("title/", StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnInitialized() => Nav.LocationChanged += OnLocationChanged;
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Nav.LocationChanged -= OnLocationChanged;
+}

@@ -1,0 +1,23 @@
+@inject NavigationManager Nav
+@inject AppState State
+
+<div class="row-card" @onclick="GoToDetail">
+    <div class="row-thumb" style="background-image:url('@TmdbImage.Poster(Title.PosterPath, "w154")')"></div>
+    <div class="row-meta">
+        <strong>@Title.Title</strong>
+        <div class="sub">
+            @(Title.ReleaseDate is { } d ? DateFormatting.FullDate(d) : "Fecha por confirmar")
+            ·
+            <span style="color:@(Title.Type == TitleType.Series ? "#a855f7" : "#f5b942")">
+                @(Title.Type == TitleType.Series ? "Serie" : "Película")
+            </span>
+        </div>
+    </div>
+    <div class="row-right">@(Title.ReleaseDate is { } rd ? DateFormatting.RelativeDays(rd) : "")</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public TitleSummaryDto Title { get; set; } = null!;
+
+    private void GoToDetail() => DetailNavigation.GoToDetail(Nav, State, Title.Key);
+}

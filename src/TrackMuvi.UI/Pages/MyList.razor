@@ -1,0 +1,84 @@
+@page "/mylist"
+@inject ITrackMuviApiClient Api
+@inject IPersonalListService PersonalList
+@inject AppState State
+
+<PageHeader Title="Mi Lista" />
+
+<CategoryChips Items="_tabs" Selected="@State.ListTab" SelectedChanged="OnTabChanged" />
+
+@if (_loading)
+{
+    <div class="loading-spinner">Cargando...</div>
+}
+else if (_error is not null)
+{
+    <div class="error-box">@_error</div>
+}
+else
+{
+    <div class="row-list" style="margin-bottom:30px;">
+        @if (_items.Count == 0)
+        {
+            <div class="empty">Nada aquí todavía. Marca títulos desde su ficha en Descubrir.</div>
+        }
+        else
+        {
+            @foreach (var item in _items)
+            {
+                <RowCard Title="@item" />
+            }
+        }
+    </div>
+}
+
+@code {
+    private readonly IReadOnlyList<ChipItem> _tabs =
+    [
+        new("following", "Siguiendo"), new("want", "Quiero ver"), new("watched", "Vistas"),
+        new("favorite", "Favoritas"), new("pending", "Pendientes"), new("abandoned", "Abandonadas")
+    ];
+
+    private bool _loading = true;
+    private string? _error;
+    private List<TitleSummaryDto> _items = [];
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task OnTabChanged(string tab)
+    {
+        State.ListTab = tab;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            var flag = State.ListTab switch
+            {
+                "following" => PersonalStatusFlag.Following,
+                "want" => PersonalStatusFlag.Want,
+                "watched" => PersonalStatusFlag.Watched,
+                "favorite" => PersonalStatusFlag.Favorite,
+                "pending" => PersonalStatusFlag.Pending,
+                _ => PersonalStatusFlag.Abandoned
+            };
+
+            var keys = await PersonalList.GetKeysByFlagAsync(flag);
+            var details = await Task.WhenAll(keys.Select(k => Api.GetTitleDetailAsync(k)));
+            _items = details.Where(d => d is not null).Select(d => d!.ToSummary()).ToList();
+            _error = null;
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo cargar Mi Lista: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

@@ -1,0 +1,9 @@
+<header class="search-header">
+    <h1 class="search-title">@Title <NotifBell /></h1>
+    @ChildContent
+</header>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

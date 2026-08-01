@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/*.user
+src/TrackMuvi.Maui/
+src/TrackMuvi.UI/
+src/TrackMuvi.Services/
+src/TrackMuvi.Data/
+tests/
+**/*.db

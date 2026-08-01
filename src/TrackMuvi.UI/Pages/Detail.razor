@@ -1,0 +1,126 @@
+@page "/title/{Key}"
+@inject ITrackMuviApiClient Api
+@inject IPersonalListService PersonalList
+@inject NavigationManager Nav
+@inject AppState State
+
+@if (_loading)
+{
+    <div class="loading-spinner">Cargando ficha...</div>
+}
+else if (_error is not null)
+{
+    <div class="error-box">@_error</div>
+}
+else if (_title is not null)
+{
+    <div class="detail-hero" style="background-image:url('@TmdbImage.Backdrop(_title.BackdropPath ?? _title.PosterPath)')">
+        <button class="back-btn" @onclick="GoBack"><span class="material-symbols-outlined">arrow_back</span></button>
+    </div>
+    <div class="detail-body">
+        <div>
+            <span class="tag" style="background:@UniverseColor(_title.Universe); color:#0f1014;">@(_title.Universe ?? "—")</span>
+            <span class="tag" style="background:var(--bg-card); color:#fff;">@string.Join(" · ", _title.Genres.Select(g => g.Name))</span>
+        </div>
+        <h1>@_title.Title</h1>
+        <div class="meta-line">
+            @(_title.ReleaseDate is { } d ? DateFormatting.FullDate(d) : "Fecha por confirmar")
+            · @(_title.PrimaryPlatformLabel ?? "Sin proveedor")
+            @(IsSeries ? $" · {_title.Seasons} temporadas" : $" · {_title.DurationMinutes} min · {_title.Rating}")
+        </div>
+
+        <div class="status-row">
+            @if (IsSeries)
+            {
+                <StatusButton Label="Seguir" On="@_status.Following" OnClick="() => Toggle(PersonalStatusFlag.Following)" />
+                <StatusButton Label="Favorita" On="@_status.Favorite" OnClick="() => Toggle(PersonalStatusFlag.Favorite)" />
+            }
+            else
+            {
+                <StatusButton Label="Quiero ver" On="@_status.Want" OnClick="() => Toggle(PersonalStatusFlag.Want)" />
+                <StatusButton Label="Vista" On="@_status.Watched" OnClick="() => Toggle(PersonalStatusFlag.Watched)" />
+                <StatusButton Label="Favorita" On="@_status.Favorite" OnClick="() => Toggle(PersonalStatusFlag.Favorite)" />
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(_title.TrailerYoutubeKey))
+        {
+            <a class="trailer-btn" href="@($"https://www.youtube.com/watch?v={_title.TrailerYoutubeKey}")" target="_blank">
+                <span class="material-symbols-outlined">play_arrow</span>Ver tráiler
+            </a>
+        }
+
+        <div class="block"><h3>Sinopsis</h3><p>@_title.Synopsis</p></div>
+        <div class="block"><h3>@(IsSeries ? "Creador" : "Director")</h3><p>@(_title.Creators.Count > 0 ? string.Join(", ", _title.Creators) : "—")</p></div>
+
+        <div class="block">
+            <h3>Reparto</h3>
+            <div class="cast-scroll">
+                @foreach (var c in _title.Cast)
+                {
+                    <div class="cast-item">
+                        <div class="cast-avatar" style="@(c.ProfilePath is not null ? $"background-image:url('{TmdbImage.Profile(c.ProfilePath)}')" : "")">
+                            @(c.ProfilePath is null ? "🎭" : "")
+                        </div>
+                        <span>@c.Name</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @if (_title.GalleryBackdropPaths.Count > 0)
+        {
+            <div class="block" style="margin-bottom:40px;">
+                <h3>Galería</h3>
+                <div class="gallery">
+                    @foreach (var path in _title.GalleryBackdropPaths)
+                    {
+                        <div style="background-image:url('@TmdbImage.Backdrop(path, "w300")')"></div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public string Key { get; set; } = string.Empty;
+
+    private bool _loading = true;
+    private string? _error;
+    private TitleDetailDto? _title;
+    private PersonalStatusDto _status = PersonalStatusDto.Empty("");
+
+    private bool IsSeries => _title?.Type == TitleType.Series;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _loading = true;
+        _error = null;
+        try
+        {
+            _title = await Api.GetTitleDetailAsync(Key);
+            _status = await PersonalList.GetStatusAsync(Key);
+            if (_title is null) _error = "No se encontró este título.";
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo cargar la ficha: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task Toggle(PersonalStatusFlag flag) => _status = await PersonalList.ToggleFlagAsync(Key, flag);
+
+    private void GoBack() => DetailNavigation.GoBack(Nav, State);
+
+    private static string UniverseColor(string? universe) => universe switch
+    {
+        "Marvel" => "var(--marvel)",
+        "DC" => "var(--dc)",
+        _ => "var(--indie)"
+    };
+}

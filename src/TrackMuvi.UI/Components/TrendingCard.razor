@@ -1,0 +1,20 @@
+@inject NavigationManager Nav
+@inject AppState State
+
+<div class="trending-card" style="background-image:url('@(TmdbImage.Backdrop(Title.BackdropPath ?? Title.PosterPath))')" @onclick="GoToDetail">
+    <div class="trending-rank">@Rank</div>
+    <div class="trending-badge" style="background:@(Title.Type == TitleType.Series ? "#a855f7" : "#f5b942")">
+        @(Title.Type == TitleType.Series ? "Serie" : "Película")
+    </div>
+    <div class="trending-overlay">
+        <h3 class="trending-title">@Title.Title</h3>
+        <span class="trending-meta">@Title.PrimaryGenre@(Title.PrimaryPlatformLabel is not null ? $" · {Title.PrimaryPlatformLabel}" : "")</span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public TitleSummaryDto Title { get; set; } = null!;
+    [Parameter] public int Rank { get; set; }
+
+    private void GoToDetail() => DetailNavigation.GoToDetail(Nav, State, Title.Key);
+}

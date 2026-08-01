@@ -1,0 +1,36 @@
+@inject AppState State
+
+<div class="bell-wrap" @onclick="Toggle" @onclick:stopPropagation="true">
+    <span class="material-symbols-outlined">notifications</span>
+    @if (State.Notifications.Count > 0)
+    {
+        <span class="dot"></span>
+    }
+    <div class="notif-panel @(_open ? "open" : "")">
+        @if (State.Notifications.Count == 0)
+        {
+            <div class="notif-item">Sin notificaciones todavía.</div>
+        }
+        else
+        {
+            @foreach (var n in State.Notifications.OrderByDescending(n => n.At))
+            {
+                <div class="notif-item">
+                    <div>@n.Title</div>
+                    <div class="t">@n.At.LocalDateTime.ToString("d MMM, HH:mm")</div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@if (_open)
+{
+    <div style="position:absolute; inset:0; z-index:25;" @onclick="Close"></div>
+}
+
+@code {
+    private bool _open;
+    private void Toggle() => _open = !_open;
+    private void Close() => _open = false;
+}

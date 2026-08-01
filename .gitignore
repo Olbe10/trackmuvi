@@ -1,0 +1,29 @@
+## .NET / Visual Studio
+bin/
+obj/
+*.user
+.vs/
+*.userosscache
+*.sln.docstates
+
+## Rider / Resharper
+.idea/
+*.DotSettings.user
+
+## Android / MAUI build output
+*.apk
+*.aab
+*.ap_
+
+## SQLite runtime databases (no se versionan; se recrean con las migraciones de TrackMuvi.Data)
+*.db
+*.db-shm
+*.db-wal
+
+## Secretos (nunca la TMDb key en el repo)
+appsettings.Production.json
+appsettings.*.local.json
+
+## OS
+.DS_Store
+Thumbs.db

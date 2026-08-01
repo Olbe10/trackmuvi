@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android bloquea HTTP sin cifrar por defecto desde API 28. Estos permisos son solo para
+  desarrollo: 10.0.2.2 es el alias del emulador hacia el localhost de la PC, y 192.168.68.63
+  es la IP de la PC en la WiFi (para probar desde un teléfono físico en la misma red).
+  Cuando TrackMuvi.Api esté desplegada en Azure (HTTPS), esta excepción deja de ser necesaria.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">192.168.68.63</domain>
+    </domain-config>
+</network-security-config>

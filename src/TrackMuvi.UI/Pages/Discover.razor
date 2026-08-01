@@ -1,0 +1,220 @@
+@page "/discover"
+@implements IDisposable
+@inject ITrackMuviApiClient Api
+@inject AppState State
+
+<PageHeader Title="Descubrir">
+    <div class="search-bar">
+        <span class="material-symbols-outlined">search</span>
+        <input type="text" placeholder="Películas, series..." value="@State.SearchQuery" @oninput="OnSearchInput" />
+    </div>
+</PageHeader>
+
+<CategoryChips Items="_categories" Selected="@State.DiscoverCategory" SelectedChanged="OnCategoryChanged" />
+
+@if (_loadingGenres)
+{
+    <div class="loading-spinner">Cargando...</div>
+}
+else
+{
+    <section class="section-container">
+        <div class="section-header"><h2 class="section-title">@(IsSearching ? "Resultados" : "Tendencias globales")</h2></div>
+        @if (_searchLoading)
+        {
+            <div class="loading-spinner">Buscando...</div>
+        }
+        else if (_error is not null)
+        {
+            <div class="error-box">@_error</div>
+        }
+        else if (_filteredTrending.Count == 0)
+        {
+            <div class="empty">Sin resultados con este filtro.</div>
+        }
+        else if (IsSearching)
+        {
+            <div class="row-list">
+                @foreach (var item in _filteredTrending)
+                {
+                    <RowCard Title="@item" />
+                }
+            </div>
+        }
+        else
+        {
+            <div class="trending-scroll">
+                @{ var rank = 1; }
+                @foreach (var item in _filteredTrending.Take(4))
+                {
+                    <TrendingCard Title="@item" Rank="@rank" />
+                    rank++;
+                }
+            </div>
+        }
+    </section>
+
+    @if (!IsSearching)
+    {
+        <section class="section-container">
+            <div class="section-header"><h2 class="section-title">Tus plataformas</h2></div>
+            <div class="platforms-grid">
+                @foreach (var p in _platforms)
+                {
+                    <div class="platform-btn">@p</div>
+                }
+            </div>
+        </section>
+
+        <section class="section-container" style="margin-bottom:50px;">
+            <div class="section-header"><h2 class="section-title">Estrenos anticipados</h2></div>
+            @if (_filteredUpcoming.Count == 0)
+            {
+                <div class="empty">Nada próximo con este filtro.</div>
+            }
+            else
+            {
+                <div class="poster-scroll">
+                    @foreach (var item in _filteredUpcoming)
+                    {
+                        <PosterCard Title="@item" FlagLabel="@(item.ReleaseDate is { } d ? DateFormatting.MonthFlag(d) : null)" />
+                    }
+                </div>
+            }
+        </section>
+    }
+}
+
+@code {
+    // Placeholder no interactivo: TMDb sí tiene watch/providers por región, pero listar
+    // "tus plataformas" de verdad requeriría selección de usuario + otro endpoint;
+    // queda fuera del MVP y se deja como grid fijo para conservar la estructura del mockup.
+    private static readonly string[] _platforms = ["NETFLIX", "MAX", "PRIME VIDEO", "DISNEY+"];
+
+    private readonly List<ChipItem> _categories = [new("all", "Todo"), new("marvel", "Marvel"), new("dc", "DC"), new("independiente", "Independiente")];
+    private readonly Dictionary<string, string> _universeCache = new();
+
+    private bool _loadingGenres = true;
+    private bool _searchLoading;
+    private string? _error;
+
+    private List<TitleSummaryDto> _trending = [];
+    private List<TitleSummaryDto> _upcoming = [];
+    private List<TitleSummaryDto> _searchResults = [];
+
+    private List<TitleSummaryDto> _filteredTrending = [];
+    private List<TitleSummaryDto> _filteredUpcoming = [];
+
+    private Timer? _debounceTimer;
+    private bool IsSearching => !string.IsNullOrWhiteSpace(State.SearchQuery);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var movieGenres = await Api.GetGenresAsync(TitleType.Movie);
+            var tvGenres = await Api.GetGenresAsync(TitleType.Series);
+            foreach (var name in movieGenres.Concat(tvGenres).Select(g => g.Name).Distinct().OrderBy(n => n))
+            {
+                _categories.Add(new ChipItem(name, name));
+            }
+
+            var trendingMovies = await Api.GetTrendingMoviesAsync();
+            var trendingTv = await Api.GetTrendingTvAsync();
+            _trending = trendingMovies.Concat(trendingTv).OrderByDescending(t => t.Popularity).ToList();
+            _upcoming = (await Api.GetUpcomingMoviesAsync()).OrderBy(t => t.ReleaseDate).Take(6).ToList();
+
+            if (IsSearching)
+            {
+                await RunSearchAsync();
+            }
+            else
+            {
+                await ApplyFilterAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo cargar Descubrir: {ex.Message}";
+        }
+        finally
+        {
+            _loadingGenres = false;
+        }
+    }
+
+    private void OnSearchInput(Microsoft.AspNetCore.Components.ChangeEventArgs e)
+    {
+        State.SearchQuery = e.Value?.ToString() ?? string.Empty;
+        _debounceTimer?.Dispose();
+        _debounceTimer = new Timer(_ => InvokeAsync(async () =>
+        {
+            await RunSearchAsync();
+            StateHasChanged();
+        }), null, 450, Timeout.Infinite);
+    }
+
+    private async Task RunSearchAsync()
+    {
+        if (!IsSearching)
+        {
+            await ApplyFilterAsync();
+            return;
+        }
+
+        _searchLoading = true;
+        try
+        {
+            var result = await Api.SearchAsync(State.SearchQuery);
+            _searchResults = result.Results.ToList();
+            await ApplyFilterAsync();
+        }
+        finally
+        {
+            _searchLoading = false;
+        }
+    }
+
+    private async Task OnCategoryChanged(string category)
+    {
+        State.DiscoverCategory = category;
+        await ApplyFilterAsync();
+    }
+
+    private async Task ApplyFilterAsync()
+    {
+        var trendingSource = IsSearching ? _searchResults : _trending;
+
+        _filteredTrending = await FilterAsync(trendingSource);
+        _filteredUpcoming = IsSearching ? [] : await FilterAsync(_upcoming);
+    }
+
+    private async Task<List<TitleSummaryDto>> FilterAsync(IReadOnlyList<TitleSummaryDto> source)
+    {
+        var category = State.DiscoverCategory;
+        if (category == "all") return source.ToList();
+
+        if (category is "marvel" or "dc" or "independiente")
+        {
+            await EnsureUniverseResolvedAsync(source);
+            var label = category switch { "marvel" => "Marvel", "dc" => "DC", _ => "Independiente" };
+            return source.Where(t => _universeCache.GetValueOrDefault(t.Key) == label).ToList();
+        }
+
+        return source.Where(t => t.PrimaryGenre == category).ToList();
+    }
+
+    private async Task EnsureUniverseResolvedAsync(IReadOnlyList<TitleSummaryDto> source)
+    {
+        var missing = source.Where(t => !_universeCache.ContainsKey(t.Key)).ToList();
+        if (missing.Count == 0) return;
+
+        var details = await Task.WhenAll(missing.Select(t => Api.GetTitleDetailAsync(t.Key)));
+        foreach (var d in details)
+        {
+            if (d is not null) _universeCache[d.Key] = d.Universe ?? "Independiente";
+        }
+    }
+
+    public void Dispose() => _debounceTimer?.Dispose();
+}

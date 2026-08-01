@@ -1,0 +1,103 @@
+@page "/"
+@inject ITrackMuviApiClient Api
+@inject IPersonalListService PersonalList
+
+<PageHeader Title="Inicio" />
+
+@if (_loading)
+{
+    <div class="loading-spinner">Cargando catálogo...</div>
+}
+else if (_error is not null)
+{
+    <div class="error-box">@_error</div>
+}
+else
+{
+    <section class="section-container" style="margin-top:20px;">
+        <div class="section-header"><h2 class="section-title">Tendencias de la semana</h2></div>
+        <div class="trending-scroll">
+            @{ var rank = 1; }
+            @foreach (var item in _trending)
+            {
+                <TrendingCard Title="@item" Rank="@rank" />
+                rank++;
+            }
+        </div>
+    </section>
+
+    <section class="section-container">
+        <div class="section-header"><h2 class="section-title">Series que sigues</h2></div>
+        @if (_following.Count > 0)
+        {
+            <div class="row-list">
+                @foreach (var item in _following)
+                {
+                    <RowCard Title="@item" />
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty">Aún no sigues ninguna serie. Ve a Descubrir y pulsa "Seguir" en una ficha.</div>
+        }
+    </section>
+
+    <section class="section-container">
+        <div class="section-header"><h2 class="section-title">Descubre algo nuevo</h2></div>
+        <div class="poster-scroll">
+            @foreach (var item in _discoverMore)
+            {
+                <PosterCard Title="@item" />
+            }
+        </div>
+    </section>
+
+    <section class="section-container" style="margin-bottom:50px;">
+        <div class="section-header"><h2 class="section-title">Estrenos anticipados</h2></div>
+        <div class="poster-scroll">
+            @foreach (var item in _upcoming)
+            {
+                <PosterCard Title="@item" FlagLabel="@(item.ReleaseDate is { } d ? DateFormatting.MonthFlag(d) : null)" />
+            }
+        </div>
+    </section>
+}
+
+@code {
+    private bool _loading = true;
+    private string? _error;
+    private List<TitleSummaryDto> _trending = [];
+    private List<TitleSummaryDto> _discoverMore = [];
+    private List<TitleSummaryDto> _upcoming = [];
+    private List<TitleSummaryDto> _following = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var movies = await Api.GetTrendingMoviesAsync();
+            var tv = await Api.GetTrendingTvAsync();
+            var combined = movies.Concat(tv).OrderByDescending(t => t.Popularity).ToList();
+
+            _trending = combined.Take(4).ToList();
+            _discoverMore = combined.Skip(4).Take(8).ToList();
+            _upcoming = (await Api.GetUpcomingMoviesAsync())
+                .OrderBy(t => t.ReleaseDate)
+                .Take(8)
+                .ToList();
+
+            var followingKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
+            var details = await Task.WhenAll(followingKeys.Select(k => Api.GetTitleDetailAsync(k)));
+            _following = details.Where(d => d is not null).Select(d => d!.ToSummary()).ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo cargar el catálogo: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

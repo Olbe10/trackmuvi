@@ -1,0 +1,150 @@
+@page "/profile"
+@inject IPersonalListService PersonalList
+@inject ITrackMuviApiClient Api
+@inject INotificationService Notifications
+@inject ICalendarSyncService CalendarSync
+@inject IKeyValueStore Store
+
+<PageHeader Title="Perfil" />
+
+<div style="display:flex; align-items:center; gap:14px; padding:20px 20px 0;">
+    <div class="avatar-big">O</div>
+    <div><strong style="font-size:16px;">Olbe</strong><div style="color:var(--text-muted); font-size:12px;">Miembro desde 2026</div></div>
+</div>
+
+<div class="stats-grid" style="margin-top:18px;">
+    <div class="stat-box"><div class="num">@_watchedCount</div><div class="label">Vistas</div></div>
+    <div class="stat-box"><div class="num">@_followingCount</div><div class="label">Series siguiendo</div></div>
+    <div class="stat-box"><div class="num">@_totalHours</div><div class="label">Tiempo total</div></div>
+    <div class="stat-box"><div class="num">@_favoriteUniverse</div><div class="label">Universo favorito</div></div>
+</div>
+
+<div class="section-header"><h2 class="section-title" style="font-size:15px;">Notificaciones</h2></div>
+<div class="setting-row">
+    Estrenos de películas
+    <div class="toggle @(_notifyMovies ? "on" : "")" @onclick="() => ToggleNotifPref(NotificationPreferenceKeys.MovieReleases, v => _notifyMovies = v)"><div class="knob"></div></div>
+</div>
+<div class="setting-row">
+    Nuevos episodios
+    <div class="toggle @(_notifyEpisodes ? "on" : "")" @onclick="() => ToggleNotifPref(NotificationPreferenceKeys.NewEpisodes, v => _notifyEpisodes = v)"><div class="knob"></div></div>
+</div>
+<div class="setting-row">
+    Cambios de fecha
+    <div class="toggle @(_notifyDateChanges ? "on" : "")" @onclick="() => ToggleNotifPref(NotificationPreferenceKeys.DateChanges, v => _notifyDateChanges = v)"><div class="knob"></div></div>
+</div>
+
+<div class="section-header" style="margin-top:18px;"><h2 class="section-title" style="font-size:15px;">Sincronización de calendario</h2></div>
+<button class="sync-btn" @onclick="SyncCalendarAsync" disabled="@_syncing">
+    <span class="material-symbols-outlined" style="font-size:18px;">calendar_month</span>
+    @(_syncing ? "Sincronizando..." : "Sincronizar con el Calendario del dispositivo")
+</button>
+@if (_syncMessage is not null)
+{
+    <div class="empty" style="text-align:left; padding:6px 20px;">@_syncMessage</div>
+}
+
+<button class="sync-btn" style="margin-bottom:30px;" @onclick="SendTestNotificationAsync">
+    <span class="material-symbols-outlined" style="font-size:18px;">notifications_active</span>
+    Enviar notificación de prueba
+</button>
+
+@code {
+    private int _watchedCount;
+    private int _followingCount;
+    private string _totalHours = "0h";
+    private string _favoriteUniverse = "—";
+
+    private bool _notifyMovies = true;
+    private bool _notifyEpisodes = true;
+    private bool _notifyDateChanges;
+
+    private bool _syncing;
+    private string? _syncMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _notifyMovies = Store.Get(NotificationPreferenceKeys.MovieReleases) != "0";
+        _notifyEpisodes = Store.Get(NotificationPreferenceKeys.NewEpisodes) != "0";
+        _notifyDateChanges = Store.Get(NotificationPreferenceKeys.DateChanges) == "1";
+
+        var watchedKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Watched);
+        var followingKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
+        var favoriteKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Favorite);
+
+        _watchedCount = watchedKeys.Count;
+        _followingCount = followingKeys.Count;
+
+        var relevantKeys = watchedKeys.Concat(followingKeys).Concat(favoriteKeys).Distinct().ToList();
+        var details = await Task.WhenAll(relevantKeys.Select(k => Api.GetTitleDetailAsync(k)));
+        var resolved = details.Where(d => d is not null).Select(d => d!).ToList();
+
+        var totalMinutes = resolved.Where(d => watchedKeys.Contains(d.Key)).Sum(d => d.DurationMinutes ?? 0);
+        _totalHours = $"{totalMinutes / 60}h";
+
+        _favoriteUniverse = resolved
+            .Select(d => d.Universe)
+            .Where(u => !string.IsNullOrEmpty(u))
+            .GroupBy(u => u)
+            .OrderByDescending(g => g.Count())
+            .Select(g => g.Key!)
+            .FirstOrDefault() ?? "—";
+    }
+
+    private void ToggleNotifPref(string key, Action<bool> setLocal)
+    {
+        var current = key switch
+        {
+            NotificationPreferenceKeys.MovieReleases => _notifyMovies,
+            NotificationPreferenceKeys.NewEpisodes => _notifyEpisodes,
+            _ => _notifyDateChanges
+        };
+        var next = !current;
+        Store.Set(key, next ? "1" : "0");
+        setLocal(next);
+    }
+
+    private async Task SyncCalendarAsync()
+    {
+        _syncing = true;
+        _syncMessage = null;
+        try
+        {
+            var granted = await CalendarSync.RequestPermissionAsync();
+            if (!granted)
+            {
+                _syncMessage = "Permiso de calendario denegado.";
+                return;
+            }
+
+            var keys = (await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following))
+                .Concat(await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Want))
+                .Distinct()
+                .ToList();
+
+            var details = await Task.WhenAll(keys.Select(k => Api.GetTitleDetailAsync(k)));
+            var count = 0;
+            foreach (var d in details)
+            {
+                if (d?.ReleaseDate is null) continue;
+                await CalendarSync.AddOrUpdateEventAsync(d);
+                count++;
+            }
+
+            _syncMessage = $"{count} estreno(s) sincronizado(s) con tu calendario.";
+        }
+        catch (Exception ex)
+        {
+            _syncMessage = $"No se pudo sincronizar: {ex.Message}";
+        }
+        finally
+        {
+            _syncing = false;
+        }
+    }
+
+    private async Task SendTestNotificationAsync()
+    {
+        await Notifications.RequestPermissionAsync();
+        await Notifications.ShowTestNotificationAsync();
+    }
+}

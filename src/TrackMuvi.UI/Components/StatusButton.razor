@@ -1,0 +1,9 @@
+<div class="status-btn @(On ? "on" : "")" @onclick="() => OnClick.InvokeAsync()">
+    @Label
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter] public bool On { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+}

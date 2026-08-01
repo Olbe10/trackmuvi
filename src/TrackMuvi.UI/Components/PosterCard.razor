@@ -1,0 +1,23 @@
+@inject NavigationManager Nav
+@inject AppState State
+
+<div class="poster-card" @onclick="GoToDetail">
+    <div class="poster-img-container" style="background-image:url('@TmdbImage.Poster(Title.PosterPath)')">
+        @if (!string.IsNullOrEmpty(FlagLabel))
+        {
+            <div class="poster-flag" style="background:var(--accent)">@FlagLabel</div>
+        }
+        else if (Title.PrimaryPlatformLabel is not null)
+        {
+            <span class="poster-platform">@Title.PrimaryPlatformLabel</span>
+        }
+    </div>
+    <span class="poster-title">@Title.Title</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public TitleSummaryDto Title { get; set; } = null!;
+    [Parameter] public string? FlagLabel { get; set; }
+
+    private void GoToDetail() => DetailNavigation.GoToDetail(Nav, State, Title.Key);
+}

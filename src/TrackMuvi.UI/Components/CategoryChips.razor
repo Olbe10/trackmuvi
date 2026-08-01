@@ -1,0 +1,16 @@
+<div class="categories-scroll">
+    @foreach (var item in Items)
+    {
+        <div class="category-chip @(item.Key == Selected ? "active" : "")" @onclick="() => Select(item.Key)">
+            @item.Label
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ChipItem> Items { get; set; } = [];
+    [Parameter] public string Selected { get; set; } = string.Empty;
+    [Parameter] public EventCallback<string> SelectedChanged { get; set; }
+
+    private Task Select(string key) => SelectedChanged.InvokeAsync(key);
+}

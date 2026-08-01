@@ -1,0 +1,116 @@
+@page "/calendar"
+@inject ITrackMuviApiClient Api
+@inject IPersonalListService PersonalList
+@inject AppState State
+
+<PageHeader Title="Calendario" />
+
+<CategoryChips Items="_modes" Selected="@State.CalendarMode" SelectedChanged="OnModeChanged" />
+
+@if (_loading)
+{
+    <div class="loading-spinner">Cargando estrenos...</div>
+}
+else if (_error is not null)
+{
+    <div class="error-box">@_error</div>
+}
+else
+{
+    var filtered = Filtered();
+
+    if (State.CalendarMode == "month")
+    {
+        @foreach (var group in filtered.GroupBy(t => DateFormatting.MonthYearLabel(t.ReleaseDate!.Value)))
+        {
+            <div class="section-container">
+                <div class="section-header">
+                    <h2 class="section-title" style="font-size:14px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted);">@group.Key</h2>
+                </div>
+                <div class="row-list">
+                    @foreach (var item in group)
+                    {
+                        <RowCard Title="@item" />
+                    }
+                </div>
+            </div>
+        }
+        if (!filtered.Any())
+        {
+            <div class="empty">Nada programado en este rango.</div>
+        }
+    }
+    else
+    {
+        <div class="row-list">
+            @if (filtered.Any())
+            {
+                @foreach (var item in filtered)
+                {
+                    <RowCard Title="@item" />
+                }
+            }
+            else
+            {
+                <div class="empty">Nada programado en este rango.</div>
+            }
+        </div>
+    }
+    <div style="height:20px;"></div>
+}
+
+@code {
+    private readonly IReadOnlyList<ChipItem> _modes =
+    [
+        new("month", "Mes"), new("week", "Semana"), new("day", "Día")
+    ];
+
+    private bool _loading = true;
+    private string? _error;
+    private List<TitleSummaryDto> _all = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var moviesPage1 = await Api.GetUpcomingMoviesAsync(1);
+            var moviesPage2 = await Api.GetUpcomingMoviesAsync(2);
+
+            var followingKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
+            var episodes = await Api.GetNextEpisodesAsync(followingKeys);
+
+            _all = moviesPage1.Concat(moviesPage2)
+                .Concat(episodes.Select(e => e.ToSummary()))
+                .Where(t => t.ReleaseDate is not null)
+                .OrderBy(t => t.ReleaseDate)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo cargar el calendario: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnModeChanged(string mode)
+    {
+        State.CalendarMode = mode;
+    }
+
+    private List<TitleSummaryDto> Filtered()
+    {
+        var list = _all.Where(t => DateFormatting.DaysUntil(t.ReleaseDate!.Value) >= -3);
+
+        list = State.CalendarMode switch
+        {
+            "week" => list.Where(t => DateFormatting.DaysUntil(t.ReleaseDate!.Value) is >= 0 and <= 7),
+            "day" => list.Where(t => DateFormatting.DaysUntil(t.ReleaseDate!.Value) == 0),
+            _ => list
+        };
+
+        return list.ToList();
+    }
+}
