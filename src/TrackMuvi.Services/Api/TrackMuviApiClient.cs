@@ -12,8 +12,14 @@ public class TrackMuviApiClient(HttpClient httpClient) : ITrackMuviApiClient
             $"api/search?query={Uri.EscapeDataString(query)}&page={page}", ct)
         ?? new SearchResultDto([], 1, 0, 0);
 
-    public async Task<IReadOnlyList<TitleSummaryDto>> GetUpcomingMoviesAsync(int page = 1, CancellationToken ct = default) =>
-        await httpClient.GetFromJsonAsync<List<TitleSummaryDto>>($"api/movies/upcoming?page={page}", ct) ?? [];
+    public async Task<IReadOnlyList<TitleSummaryDto>> GetUpcomingMoviesAsync(
+        DateOnly? from = null, DateOnly? to = null, int page = 1, CancellationToken ct = default)
+    {
+        var query = $"api/movies/upcoming?page={page}";
+        if (from is { } f) query += $"&from={f:yyyy-MM-dd}";
+        if (to is { } t) query += $"&to={t:yyyy-MM-dd}";
+        return await httpClient.GetFromJsonAsync<List<TitleSummaryDto>>(query, ct) ?? [];
+    }
 
     public async Task<IReadOnlyList<TitleSummaryDto>> GetTrendingMoviesAsync(CancellationToken ct = default) =>
         await httpClient.GetFromJsonAsync<List<TitleSummaryDto>>("api/movies/trending", ct) ?? [];

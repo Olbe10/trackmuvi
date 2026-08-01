@@ -71,11 +71,15 @@ public static class TitleMapper
             .Distinct()
             .ToList() ?? [];
 
+        var watchProviders = ExtractWatchProviders(d.WatchProviders, region);
+
         return new TitleDetailDto(
             key, d.Id, TitleType.Movie, d.Title,
             Universe: UniverseMapper.Resolve(d.ProductionCompanies, d.BelongsToCollection),
             Genres: d.Genres.Select(g => new GenreDto(g.Id, g.Name)).ToList(),
-            PrimaryPlatformLabel: "Cine",
+            // Si ya está disponible en streaming/alquiler/compra, mostramos esa plataforma real;
+            // si no hay ninguna todavía (recién estrenada o solo en cines), cae a "Cine".
+            PrimaryPlatformLabel: watchProviders.FirstOrDefault()?.ProviderName ?? "Cine",
             ReleaseDate: ParseDate(d.ReleaseDate),
             Seasons: null,
             DurationMinutes: d.Runtime,
@@ -87,7 +91,7 @@ public static class TitleMapper
             PosterPath: d.PosterPath,
             BackdropPath: d.BackdropPath,
             TrailerYoutubeKey: ExtractTrailerKey(d.Videos),
-            WatchProviders: ExtractWatchProviders(d.WatchProviders, region),
+            WatchProviders: watchProviders,
             GalleryBackdropPaths: ExtractGallery(d.Images));
     }
 

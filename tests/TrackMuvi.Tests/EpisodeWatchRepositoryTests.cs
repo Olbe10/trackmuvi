@@ -56,6 +56,38 @@ public class EpisodeWatchRepositoryTests : IDisposable
         Assert.Equal(new HashSet<int> { 1, 2 }, watched);
     }
 
+    [Fact]
+    public async Task SetEpisodesWatchedAsync_MarksAllGivenEpisodes()
+    {
+        await _repository.SetEpisodesWatchedAsync("series-1", 1, [1, 2, 3], watched: true);
+
+        var watched = await _repository.GetWatchedEpisodeNumbersAsync("series-1", 1);
+
+        Assert.Equal(new HashSet<int> { 1, 2, 3 }, watched);
+    }
+
+    [Fact]
+    public async Task SetEpisodesWatchedAsync_IsIdempotent_WhenSomeAlreadyWatched()
+    {
+        await _repository.ToggleEpisodeWatchedAsync("series-1", 1, 2);
+
+        await _repository.SetEpisodesWatchedAsync("series-1", 1, [1, 2, 3], watched: true);
+
+        var watched = await _repository.GetWatchedEpisodeNumbersAsync("series-1", 1);
+        Assert.Equal(new HashSet<int> { 1, 2, 3 }, watched);
+    }
+
+    [Fact]
+    public async Task SetEpisodesWatchedAsync_UnmarksAllGivenEpisodes()
+    {
+        await _repository.SetEpisodesWatchedAsync("series-1", 1, [1, 2, 3], watched: true);
+
+        await _repository.SetEpisodesWatchedAsync("series-1", 1, [1, 2, 3], watched: false);
+
+        var watched = await _repository.GetWatchedEpisodeNumbersAsync("series-1", 1);
+        Assert.Empty(watched);
+    }
+
     public void Dispose()
     {
         _db.Dispose();

@@ -16,9 +16,14 @@ public class TmdbClient(HttpClient httpClient, IOptions<TmdbOptions> options) : 
             $"search/multi?query={Uri.EscapeDataString(query)}&include_adult=false&page={page}&language={_options.DefaultLanguage}",
             ct);
 
-    public Task<TmdbMovieListResponse> GetUpcomingMoviesAsync(int page, CancellationToken ct) =>
+    public Task<TmdbMovieListResponse> DiscoverMoviesByDateRangeAsync(DateOnly from, DateOnly to, int page, CancellationToken ct) =>
         GetAsync<TmdbMovieListResponse>(
-            $"movie/upcoming?page={page}&language={_options.DefaultLanguage}&region={_options.DefaultRegion}",
+            "discover/movie" +
+            $"?sort_by=primary_release_date.asc" +
+            $"&with_release_type={Uri.EscapeDataString("2|3")}" +
+            $"&primary_release_date.gte={from:yyyy-MM-dd}" +
+            $"&primary_release_date.lte={to:yyyy-MM-dd}" +
+            $"&page={page}&language={_options.DefaultLanguage}&region={_options.DefaultRegion}",
             ct);
 
     public Task<TmdbMovieListResponse> GetTrendingMoviesAsync(CancellationToken ct) =>

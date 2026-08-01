@@ -7,7 +7,9 @@ namespace TrackMuvi.Services.Api;
 public interface ITrackMuviApiClient
 {
     Task<SearchResultDto> SearchAsync(string query, int page = 1, CancellationToken ct = default);
-    Task<IReadOnlyList<TitleSummaryDto>> GetUpcomingMoviesAsync(int page = 1, CancellationToken ct = default);
+    /// <summary>Estrenos de cine en un rango de fechas. Sin from/to: hoy + 60 días.</summary>
+    Task<IReadOnlyList<TitleSummaryDto>> GetUpcomingMoviesAsync(
+        DateOnly? from = null, DateOnly? to = null, int page = 1, CancellationToken ct = default);
     Task<IReadOnlyList<TitleSummaryDto>> GetTrendingMoviesAsync(CancellationToken ct = default);
     Task<IReadOnlyList<TitleSummaryDto>> GetTrendingTvAsync(CancellationToken ct = default);
     Task<TitleDetailDto?> GetTitleDetailAsync(string titleKey, CancellationToken ct = default);

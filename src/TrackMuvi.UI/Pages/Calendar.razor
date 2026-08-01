@@ -37,26 +37,33 @@ else
             <button class="month-nav" @onclick="NextMonth"><span class="material-symbols-outlined">chevron_right</span></button>
         </div>
 
-        <div class="calendar-grid">
-            @foreach (var wd in WeekdayLabels)
-            {
-                <div class="weekday">@wd</div>
-            }
-            @foreach (var cell in BuildGridCells())
-            {
-                <div class="day-cell @(cell.Muted ? "muted" : "") @(cell.Date == Today ? "today" : "") @(cell.Date == _selectedDate ? "selected" : "")"
-                     @onclick="() => SelectDate(cell.Date)">
-                    @cell.Date.Day
-                    @if (cell.HasSeries || cell.HasMovie)
-                    {
-                        <div class="event-dots">
-                            @if (cell.HasSeries) { <div class="dot series"></div> }
-                            @if (cell.HasMovie) { <div class="dot movie"></div> }
-                        </div>
-                    }
-                </div>
-            }
-        </div>
+        @if (_monthLoading)
+        {
+            <div class="loading-spinner">Cargando @DateFormatting.MonthYearLabel(_currentMonth)...</div>
+        }
+        else
+        {
+            <div class="calendar-grid">
+                @foreach (var wd in WeekdayLabels)
+                {
+                    <div class="weekday">@wd</div>
+                }
+                @foreach (var cell in BuildGridCells())
+                {
+                    <div class="day-cell @(cell.Muted ? "muted" : "") @(cell.Date == Today ? "today" : "") @(cell.Date == _selectedDate ? "selected" : "")"
+                         @onclick="() => SelectDate(cell.Date)">
+                        @cell.Date.Day
+                        @if (cell.HasSeries || cell.HasMovie)
+                        {
+                            <div class="event-dots">
+                                @if (cell.HasSeries) { <div class="dot series"></div> }
+                                @if (cell.HasMovie) { <div class="dot movie"></div> }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
     </div>
 
     <div class="agenda-header">
@@ -90,10 +97,12 @@ else
     private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 
     private bool _loading = true;
+    private bool _monthLoading = true;
     private bool _agendaLoading = true;
     private string? _error;
 
-    private List<CalendarEvent> _allEvents = [];
+    private List<CalendarEvent> _movieEvents = [];
+    private List<CalendarEvent> _episodeEvents = [];
     private List<string> _followingKeys = [];
     private List<string> _wantKeys = [];
 
@@ -108,25 +117,15 @@ else
 
         try
         {
-            var moviesPage1 = await Api.GetUpcomingMoviesAsync(1);
-            var moviesPage2 = await Api.GetUpcomingMoviesAsync(2);
-            var moviesPage3 = await Api.GetUpcomingMoviesAsync(3);
-
             _followingKeys = (await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following)).ToList();
             _wantKeys = (await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Want)).ToList();
+
             var episodes = await Api.GetNextEpisodesAsync(_followingKeys);
-
-            var movieEvents = moviesPage1.Concat(moviesPage2).Concat(moviesPage3)
-                .Where(m => m.ReleaseDate is not null)
-                .DistinctBy(m => m.Key)
-                .Select(m => new CalendarEvent(m.Key, TitleType.Movie, m.ReleaseDate!.Value, m.Title, m.PosterPath, null, null, null));
-
-            var episodeEvents = episodes.Select(e => new CalendarEvent(
+            _episodeEvents = episodes.Select(e => new CalendarEvent(
                 e.SeriesKey, TitleType.Series, e.AirDate, e.SeriesTitle, e.SeriesPosterPath,
-                e.SeasonNumber, e.EpisodeNumber, e.EpisodeName));
+                e.SeasonNumber, e.EpisodeNumber, e.EpisodeName)).ToList();
 
-            _allEvents = movieEvents.Concat(episodeEvents).ToList();
-
+            await LoadMoviesForCurrentMonthAsync();
             await LoadAgendaAsync(_selectedDate);
         }
         catch (Exception ex)
@@ -139,11 +138,38 @@ else
         }
     }
 
+    /// <summary>
+    /// Pide a la API solo los estrenos de cine del mes que se está mostrando (TMDb /discover/movie
+    /// soporta rango de fechas real, a diferencia del viejo /movie/upcoming que daba una ventana
+    /// fija de corto plazo). Se vuelve a llamar cada vez que cambia el mes visible.
+    /// </summary>
+    private async Task LoadMoviesForCurrentMonthAsync()
+    {
+        _monthLoading = true;
+        StateHasChanged();
+
+        var from = _currentMonth;
+        var to = _currentMonth.AddMonths(1).AddDays(-1);
+
+        var page1 = await Api.GetUpcomingMoviesAsync(from, to, page: 1);
+        var page2 = await Api.GetUpcomingMoviesAsync(from, to, page: 2);
+
+        _movieEvents = page1.Concat(page2)
+            .Where(m => m.ReleaseDate is not null)
+            .DistinctBy(m => m.Key)
+            .Select(m => new CalendarEvent(m.Key, TitleType.Movie, m.ReleaseDate!.Value, m.Title, m.PosterPath, null, null, null))
+            .ToList();
+
+        _monthLoading = false;
+    }
+
+    private IEnumerable<CalendarEvent> AllEvents() => _movieEvents.Concat(_episodeEvents);
+
     private IEnumerable<CalendarEvent> FilteredEvents() => State.CalendarFilter switch
     {
-        "series" => _allEvents.Where(e => e.Type == TitleType.Series),
-        "movie" => _allEvents.Where(e => e.Type == TitleType.Movie),
-        _ => _allEvents // "all" y "platforms" (sin filtro propio todavía) muestran todo
+        "series" => AllEvents().Where(e => e.Type == TitleType.Series),
+        "movie" => AllEvents().Where(e => e.Type == TitleType.Movie),
+        _ => AllEvents() // "all" y "platforms" (sin filtro propio todavía) muestran todo
     };
 
     private List<DayCellVm> BuildGridCells()
@@ -171,23 +197,31 @@ else
 
     private async Task SelectDate(DateOnly date)
     {
+        var monthChanged = date.Month != _currentMonth.Month || date.Year != _currentMonth.Year;
         _selectedDate = date;
-        if (date.Month != _currentMonth.Month || date.Year != _currentMonth.Year)
+
+        if (monthChanged)
         {
             _currentMonth = new DateOnly(date.Year, date.Month, 1);
+            await LoadMoviesForCurrentMonthAsync();
         }
 
         await LoadAgendaAsync(date);
     }
 
-    private void PrevMonth() => _currentMonth = _currentMonth.AddMonths(-1);
-    private void NextMonth() => _currentMonth = _currentMonth.AddMonths(1);
-
-    private async Task JumpToToday()
+    private async Task PrevMonth()
     {
-        _currentMonth = new DateOnly(Today.Year, Today.Month, 1);
-        await SelectDate(Today);
+        _currentMonth = _currentMonth.AddMonths(-1);
+        await LoadMoviesForCurrentMonthAsync();
     }
+
+    private async Task NextMonth()
+    {
+        _currentMonth = _currentMonth.AddMonths(1);
+        await LoadMoviesForCurrentMonthAsync();
+    }
+
+    private Task JumpToToday() => SelectDate(Today);
 
     private async Task OnFilterChanged(string filter)
     {

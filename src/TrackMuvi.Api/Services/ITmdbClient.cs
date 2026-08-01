@@ -7,7 +7,13 @@ namespace TrackMuvi.Api.Services;
 public interface ITmdbClient
 {
     Task<TmdbSearchMultiResponse> SearchMultiAsync(string query, int page, CancellationToken ct);
-    Task<TmdbMovieListResponse> GetUpcomingMoviesAsync(int page, CancellationToken ct);
+
+    /// <summary>
+    /// Reemplaza a /movie/upcoming (TMDb): ese endpoint no filtra de forma confiable por fecha
+    /// y solo da una ventana corta fija. /discover/movie con rango explícito sí permite pedir
+    /// cualquier mes (pasado o futuro) con resultados realmente acotados a esas fechas.
+    /// </summary>
+    Task<TmdbMovieListResponse> DiscoverMoviesByDateRangeAsync(DateOnly from, DateOnly to, int page, CancellationToken ct);
     Task<TmdbMovieListResponse> GetTrendingMoviesAsync(CancellationToken ct);
     Task<TmdbTvListResponse> GetTrendingTvAsync(CancellationToken ct);
     Task<TmdbMovieDetail?> GetMovieDetailAsync(int tmdbId, CancellationToken ct);

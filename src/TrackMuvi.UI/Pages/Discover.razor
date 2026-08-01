@@ -56,16 +56,6 @@ else
 
     @if (!IsSearching)
     {
-        <section class="section-container">
-            <div class="section-header"><h2 class="section-title">Tus plataformas</h2></div>
-            <div class="platforms-grid">
-                @foreach (var p in _platforms)
-                {
-                    <div class="platform-btn">@p</div>
-                }
-            </div>
-        </section>
-
         <section class="section-container" style="margin-bottom:50px;">
             <div class="section-header"><h2 class="section-title">Estrenos anticipados</h2></div>
             @if (_filteredUpcoming.Count == 0)
@@ -86,11 +76,6 @@ else
 }
 
 @code {
-    // Placeholder no interactivo: TMDb sí tiene watch/providers por región, pero listar
-    // "tus plataformas" de verdad requeriría selección de usuario + otro endpoint;
-    // queda fuera del MVP y se deja como grid fijo para conservar la estructura del mockup.
-    private static readonly string[] _platforms = ["NETFLIX", "MAX", "PRIME VIDEO", "DISNEY+"];
-
     private readonly List<ChipItem> _categories = [new("all", "Todo"), new("marvel", "Marvel"), new("dc", "DC"), new("independiente", "Independiente")];
     private readonly Dictionary<string, string> _universeCache = new();
 

@@ -84,6 +84,13 @@ else if (_title is not null)
                         <div class="progress-bar">
                             <div class="progress-fill" style="width:@(ProgressPercent())%"></div>
                         </div>
+                        @if (_season.AiredCount > 0)
+                        {
+                            <button class="season-watch-btn @(AllAiredWatched ? "all-watched" : "")" @onclick="ToggleSeasonWatched">
+                                <span class="material-symbols-outlined" style="font-size:16px;">@(AllAiredWatched ? "remove_done" : "done_all")</span>
+                                @(AllAiredWatched ? "Desmarcar temporada" : "Marcar temporada como vista")
+                            </button>
+                        }
                     </div>
 
                     <div class="episode-list">
@@ -184,6 +191,16 @@ else if (_title is not null)
     {
         await EpisodeTracking.ToggleEpisodeWatchedAsync(Key, _selectedSeason, episodeNumber);
         await LoadSeasonAsync();
+    }
+
+    private bool AllAiredWatched => _season is { AiredCount: > 0 } s && s.WatchedCount == s.AiredCount;
+
+    private async Task ToggleSeasonWatched()
+    {
+        _seasonLoading = true;
+        StateHasChanged();
+        _season = await EpisodeTracking.SetSeasonWatchedAsync(Key, _selectedSeason, !AllAiredWatched);
+        _seasonLoading = false;
     }
 
     private int ProgressPercent() =>

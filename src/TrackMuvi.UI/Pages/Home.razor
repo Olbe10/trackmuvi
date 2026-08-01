@@ -43,22 +43,12 @@ else
         }
     </section>
 
-    <section class="section-container">
+    <section class="section-container" style="margin-bottom:50px;">
         <div class="section-header"><h2 class="section-title">Descubre algo nuevo</h2></div>
         <div class="poster-scroll">
             @foreach (var item in _discoverMore)
             {
                 <PosterCard Title="@item" />
-            }
-        </div>
-    </section>
-
-    <section class="section-container" style="margin-bottom:50px;">
-        <div class="section-header"><h2 class="section-title">Estrenos anticipados</h2></div>
-        <div class="poster-scroll">
-            @foreach (var item in _upcoming)
-            {
-                <PosterCard Title="@item" FlagLabel="@(item.ReleaseDate is { } d ? DateFormatting.MonthFlag(d) : null)" />
             }
         </div>
     </section>
@@ -69,7 +59,6 @@ else
     private string? _error;
     private List<TitleSummaryDto> _trending = [];
     private List<TitleSummaryDto> _discoverMore = [];
-    private List<TitleSummaryDto> _upcoming = [];
     private List<TitleSummaryDto> _following = [];
 
     protected override async Task OnInitializedAsync()
@@ -81,11 +70,7 @@ else
             var combined = movies.Concat(tv).OrderByDescending(t => t.Popularity).ToList();
 
             _trending = combined.Take(4).ToList();
-            _discoverMore = combined.Skip(4).Take(8).ToList();
-            _upcoming = (await Api.GetUpcomingMoviesAsync())
-                .OrderBy(t => t.ReleaseDate)
-                .Take(8)
-                .ToList();
+            _discoverMore = combined.Skip(4).Take(12).ToList();
 
             var followingKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
             var details = await Task.WhenAll(followingKeys.Select(k => Api.GetTitleDetailAsync(k)));

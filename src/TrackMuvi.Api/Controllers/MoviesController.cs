@@ -9,12 +9,19 @@ namespace TrackMuvi.Api.Controllers;
 [Route("api/movies")]
 public class MoviesController(ITmdbClient tmdb, GenreCache genreCache) : ControllerBase
 {
-    /// <summary>Próximos estrenos de cine (Calendario / Inicio).</summary>
+    /// <summary>
+    /// Estrenos de cine en un rango de fechas (Calendario navega mes a mes con esto;
+    /// Descubrir pide un rango amplio para su vista general). Si no se pasan from/to,
+    /// por defecto es "desde hoy, los próximos 60 días".
+    /// </summary>
     [HttpGet("upcoming")]
     public async Task<ActionResult<IReadOnlyList<TitleSummaryDto>>> Upcoming(
-        [FromQuery] int page, CancellationToken ct)
+        [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] int page, CancellationToken ct)
     {
-        var response = await tmdb.GetUpcomingMoviesAsync(page < 1 ? 1 : page, ct);
+        var effectiveFrom = from ?? DateOnly.FromDateTime(DateTime.Today);
+        var effectiveTo = to ?? effectiveFrom.AddDays(60);
+
+        var response = await tmdb.DiscoverMoviesByDateRangeAsync(effectiveFrom, effectiveTo, page < 1 ? 1 : page, ct);
         var genres = await genreCache.GetMovieGenresAsync(ct);
         return Ok(response.Results.Select(m => TitleMapper.MapMovieSummary(m, genres)).ToList());
     }

@@ -29,4 +29,18 @@ public class EpisodeTrackingService(ITrackMuviApiClient api, IEpisodeWatchReposi
 
     public Task<bool> ToggleEpisodeWatchedAsync(string seriesKey, int seasonNumber, int episodeNumber, CancellationToken ct = default) =>
         watchRepository.ToggleEpisodeWatchedAsync(seriesKey, seasonNumber, episodeNumber, ct);
+
+    public async Task<SeasonProgressDto?> SetSeasonWatchedAsync(string seriesKey, int seasonNumber, bool watched, CancellationToken ct = default)
+    {
+        var season = await api.GetSeasonAsync(seriesKey, seasonNumber, ct);
+        if (season is null) return null;
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var airedEpisodeNumbers = season.Episodes
+            .Where(e => e.AirDate is not null && e.AirDate <= today)
+            .Select(e => e.EpisodeNumber);
+
+        await watchRepository.SetEpisodesWatchedAsync(seriesKey, seasonNumber, airedEpisodeNumbers, watched, ct);
+        return await GetSeasonAsync(seriesKey, seasonNumber, ct);
+    }
 }

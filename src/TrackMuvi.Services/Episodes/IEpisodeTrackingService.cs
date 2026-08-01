@@ -7,4 +7,7 @@ public interface IEpisodeTrackingService
 
     /// <summary>Prende/apaga el flag de un episodio. Devuelve el nuevo estado (true = visto).</summary>
     Task<bool> ToggleEpisodeWatchedAsync(string seriesKey, int seasonNumber, int episodeNumber, CancellationToken ct = default);
+
+    /// <summary>Marca (o desmarca) todos los episodios ya emitidos de la temporada de una sola vez.</summary>
+    Task<SeasonProgressDto?> SetSeasonWatchedAsync(string seriesKey, int seasonNumber, bool watched, CancellationToken ct = default);
 }
