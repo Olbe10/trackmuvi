@@ -130,6 +130,11 @@ public static class TitleMapper
             airDate.Value);
     }
 
+    public static SeasonDto MapSeason(TmdbSeasonDetail d) => new(
+        d.SeasonNumber,
+        d.Episodes.Select(e => new EpisodeDto(
+            d.SeasonNumber, e.EpisodeNumber, e.Name, e.Overview, ParseDate(e.AirDate), e.Runtime, e.StillPath)).ToList());
+
     private static List<CastMemberDto> MapCast(TmdbCredits? credits) =>
         credits?.Cast
             .OrderBy(c => c.Order)

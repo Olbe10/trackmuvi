@@ -1,0 +1,39 @@
+<div class="episode-card">
+    <div class="episode-thumb-container">
+        @if (Episode.StillPath is not null)
+        {
+            <img class="episode-thumb @(Episode.HasAired ? "" : "unaired")" src="@TmdbImage.Still(Episode.StillPath)" alt="@Episode.Name" />
+        }
+        else if (!Episode.HasAired)
+        {
+            <span class="episode-no-spoiler">Sin spoiler</span>
+        }
+    </div>
+    <div class="episode-info" style="@(Episode.HasAired ? "" : "opacity:0.6;")">
+        <h3 class="episode-title">@Episode.EpisodeNumber. @Episode.Name</h3>
+        <div class="episode-meta">
+            S@(Episode.SeasonNumber.ToString("00"))E@(Episode.EpisodeNumber.ToString("00"))
+            @(Episode.RuntimeMinutes is { } min ? $" • {min} min" : "")
+        </div>
+        <div class="episode-date @(Episode.HasAired ? "" : "upcoming")">
+            @if (Episode.AirDate is { } date)
+            {
+                @(Episode.HasAired ? $"Emitido: {DateFormatting.FullDate(date)}" : $"Próx: {DateFormatting.FullDate(date)}")
+            }
+            else
+            {
+                @:Fecha por confirmar
+            }
+        </div>
+    </div>
+    <button class="check-btn @(Episode.Watched ? "seen" : "")" disabled="@(!Episode.HasAired)" @onclick="Toggle">
+        <span class="material-symbols-outlined" style="font-size:20px;">check</span>
+    </button>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public EpisodeProgressDto Episode { get; set; } = null!;
+    [Parameter] public EventCallback OnToggle { get; set; }
+
+    private Task Toggle() => OnToggle.InvokeAsync();
+}

@@ -1,0 +1,36 @@
+@inject NavigationManager Nav
+@inject AppState State
+
+<div class="schedule-item" @onclick="GoToDetail">
+    <img class="item-poster" src="@TmdbImage.Poster(PosterPath, "w154")" alt="@Title" />
+    <div class="item-info">
+        <div class="item-meta">
+            <span class="item-tag @(Type == TitleType.Series ? "tag-series" : "tag-movie")">
+                @(Type == TitleType.Series ? "Serie" : "Película")
+            </span>
+            <span class="item-time">
+                <span class="material-symbols-outlined" style="font-size:14px;">@TimeIcon</span>@TimeLabel
+            </span>
+        </div>
+        <h4 class="item-title">@Title</h4>
+        <p class="item-subtitle">@Subtitle</p>
+    </div>
+    <div style="display:flex; align-items:center; padding-left:10px;">
+        <span class="material-symbols-outlined" style="color:@(NotificationsOn ? "var(--accent)" : "var(--text-muted)");">
+            @(NotificationsOn ? "notifications_active" : "notifications_none")
+        </span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Key { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public TitleType Type { get; set; }
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Subtitle { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string TimeLabel { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string TimeIcon { get; set; } = string.Empty;
+    [Parameter] public string? PosterPath { get; set; }
+    [Parameter] public bool NotificationsOn { get; set; }
+
+    private void GoToDetail() => DetailNavigation.GoToDetail(Nav, State, Key);
+}

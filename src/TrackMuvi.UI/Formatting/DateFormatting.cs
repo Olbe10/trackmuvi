@@ -24,4 +24,7 @@ public static class DateFormatting
 
     public static string MonthYearLabel(DateOnly date) =>
         date.ToDateTime(TimeOnly.MinValue).ToString("MMMM yyyy", Es);
+
+    public static string DayNameAndNumber(DateOnly date) =>
+        date.ToDateTime(TimeOnly.MinValue).ToString("dddd d", Es);
 }

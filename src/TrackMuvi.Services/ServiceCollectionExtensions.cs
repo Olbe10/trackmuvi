@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TrackMuvi.Services.Api;
 using TrackMuvi.Services.BackgroundSync;
+using TrackMuvi.Services.Episodes;
 using TrackMuvi.Services.Personal;
 
 namespace TrackMuvi.Services;
@@ -21,6 +22,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IPersonalListService, PersonalListService>();
         services.AddScoped<IReleaseCheckService, ReleaseCheckService>();
+        services.AddScoped<IEpisodeTrackingService, EpisodeTrackingService>();
         return services;
     }
 }

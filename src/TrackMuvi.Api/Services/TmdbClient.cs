@@ -47,6 +47,16 @@ public class TmdbClient(HttpClient httpClient, IOptions<TmdbOptions> options) : 
         return await response.Content.ReadFromJsonAsync<TmdbTvDetail>(cancellationToken: ct);
     }
 
+    public async Task<TmdbSeasonDetail?> GetSeasonDetailAsync(int tvId, int seasonNumber, CancellationToken ct)
+    {
+        var response = await httpClient.GetAsync(
+            $"tv/{tvId}/season/{seasonNumber}?language={_options.DefaultLanguage}",
+            ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<TmdbSeasonDetail>(cancellationToken: ct);
+    }
+
     public async Task<List<TmdbGenre>> GetMovieGenresAsync(CancellationToken ct)
     {
         var result = await GetAsync<TmdbGenreListResponse>($"genre/movie/list?language={_options.DefaultLanguage}", ct);

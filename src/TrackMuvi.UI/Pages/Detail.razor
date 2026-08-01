@@ -1,6 +1,7 @@
 @page "/title/{Key}"
 @inject ITrackMuviApiClient Api
 @inject IPersonalListService PersonalList
+@inject IEpisodeTrackingService EpisodeTracking
 @inject NavigationManager Nav
 @inject AppState State
 
@@ -50,6 +51,51 @@ else if (_title is not null)
             </a>
         }
 
+        @if (IsSeries && _title.Seasons is { } seasonCount && seasonCount > 0)
+        {
+            <div class="block">
+                <h3>Episodios</h3>
+                <div class="season-selector">
+                    <span>Temporada @_selectedSeason</span>
+                    <span class="material-symbols-outlined">expand_more</span>
+                    <select @bind="_selectedSeason" @bind:after="LoadSeasonAsync">
+                        @for (var s = 1; s <= seasonCount; s++)
+                        {
+                            <option value="@s">Temporada @s</option>
+                        }
+                    </select>
+                </div>
+
+                @if (_seasonLoading)
+                {
+                    <div class="loading-spinner">Cargando episodios...</div>
+                }
+                else if (_season is null)
+                {
+                    <div class="empty">No se pudo cargar esta temporada.</div>
+                }
+                else
+                {
+                    <div class="progress-container">
+                        <div class="progress-text">
+                            <span>Progreso: @_season.WatchedCount de @_season.AiredCount episodios emitidos</span>
+                            <span>@ProgressPercent()%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width:@(ProgressPercent())%"></div>
+                        </div>
+                    </div>
+
+                    <div class="episode-list">
+                        @foreach (var ep in _season.Episodes)
+                        {
+                            <EpisodeCard Episode="@ep" OnToggle="() => ToggleEpisode(ep.EpisodeNumber)" />
+                        }
+                    </div>
+                }
+            </div>
+        }
+
         <div class="block"><h3>Sinopsis</h3><p>@_title.Synopsis</p></div>
         <div class="block"><h3>@(IsSeries ? "Creador" : "Director")</h3><p>@(_title.Creators.Count > 0 ? string.Join(", ", _title.Creators) : "—")</p></div>
 
@@ -91,17 +137,30 @@ else if (_title is not null)
     private TitleDetailDto? _title;
     private PersonalStatusDto _status = PersonalStatusDto.Empty("");
 
+    private int _selectedSeason = 1;
+    private bool _seasonLoading;
+    private SeasonProgressDto? _season;
+
     private bool IsSeries => _title?.Type == TitleType.Series;
 
     protected override async Task OnParametersSetAsync()
     {
         _loading = true;
         _error = null;
+        _season = null;
         try
         {
             _title = await Api.GetTitleDetailAsync(Key);
             _status = await PersonalList.GetStatusAsync(Key);
-            if (_title is null) _error = "No se encontró este título.";
+            if (_title is null)
+            {
+                _error = "No se encontró este título.";
+            }
+            else if (_title.Type == TitleType.Series && _title.Seasons is { } seasonCount && seasonCount > 0)
+            {
+                _selectedSeason = seasonCount; // por defecto, la temporada más reciente
+                await LoadSeasonAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -112,6 +171,23 @@ else if (_title is not null)
             _loading = false;
         }
     }
+
+    private async Task LoadSeasonAsync()
+    {
+        _seasonLoading = true;
+        StateHasChanged();
+        _season = await EpisodeTracking.GetSeasonAsync(Key, _selectedSeason);
+        _seasonLoading = false;
+    }
+
+    private async Task ToggleEpisode(int episodeNumber)
+    {
+        await EpisodeTracking.ToggleEpisodeWatchedAsync(Key, _selectedSeason, episodeNumber);
+        await LoadSeasonAsync();
+    }
+
+    private int ProgressPercent() =>
+        _season is null || _season.AiredCount == 0 ? 0 : (int)Math.Round(100.0 * _season.WatchedCount / _season.AiredCount);
 
     private async Task Toggle(PersonalStatusFlag flag) => _status = await PersonalList.ToggleFlagAsync(Key, flag);
 

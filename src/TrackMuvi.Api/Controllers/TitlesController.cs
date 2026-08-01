@@ -40,4 +40,12 @@ public class TitlesController(ITmdbClient tmdb, IOptions<TmdbOptions> options) :
         var (type, tmdbId) = TitleKey.Parse(titleKey);
         return Get(type == TitleType.Movie ? "movie" : "series", tmdbId, ct);
     }
+
+    /// <summary>Episodios de una temporada (pantalla Detail de series, tab de episodios).</summary>
+    [HttpGet("series/{tmdbId:int}/season/{seasonNumber:int}")]
+    public async Task<ActionResult<SeasonDto>> GetSeason(int tmdbId, int seasonNumber, CancellationToken ct)
+    {
+        var detail = await tmdb.GetSeasonDetailAsync(tmdbId, seasonNumber, ct);
+        return detail is null ? NotFound() : Ok(TitleMapper.MapSeason(detail));
+    }
 }

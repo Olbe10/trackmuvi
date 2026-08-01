@@ -11,6 +11,7 @@ public static class TmdbImage
     public static string? Poster(string? path, string size = "w342") => Build(path, size);
     public static string? Backdrop(string? path, string size = "w780") => Build(path, size);
     public static string? Profile(string? path, string size = "w185") => Build(path, size);
+    public static string? Still(string? path, string size = "w300") => Build(path, size);
 
     private static string? Build(string? path, string size) =>
         string.IsNullOrWhiteSpace(path) ? null : $"{BaseUrl}/{size}{path}";

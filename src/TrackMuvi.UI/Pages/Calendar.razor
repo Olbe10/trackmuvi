@@ -3,9 +3,15 @@
 @inject IPersonalListService PersonalList
 @inject AppState State
 
-<PageHeader Title="Calendario" />
-
-<CategoryChips Items="_modes" Selected="@State.CalendarMode" SelectedChanged="OnModeChanged" />
+<header class="app-bar">
+    <div class="app-title">Calendario</div>
+    <div style="display:flex; align-items:center; gap:14px;">
+        <button class="icon-btn" @onclick="JumpToToday" title="Ir a hoy">
+            <span class="material-symbols-outlined">today</span>
+        </button>
+        <NotifBell />
+    </div>
+</header>
 
 @if (_loading)
 {
@@ -17,73 +23,111 @@ else if (_error is not null)
 }
 else
 {
-    var filtered = Filtered();
+    <div class="filters-scroll">
+        <div class="chip @(State.CalendarFilter == "all" ? "active" : "")" @onclick='() => OnFilterChanged("all")'>Todos</div>
+        <div class="chip @(State.CalendarFilter == "series" ? "active" : "")" @onclick='() => OnFilterChanged("series")'>Series</div>
+        <div class="chip @(State.CalendarFilter == "movie" ? "active" : "")" @onclick='() => OnFilterChanged("movie")'>Películas</div>
+        <div class="chip @(State.CalendarFilter == "platforms" ? "active" : "")" @onclick='() => OnFilterChanged("platforms")'>Plataformas</div>
+    </div>
 
-    if (State.CalendarMode == "month")
-    {
-        @foreach (var group in filtered.GroupBy(t => DateFormatting.MonthYearLabel(t.ReleaseDate!.Value)))
-        {
-            <div class="section-container">
-                <div class="section-header">
-                    <h2 class="section-title" style="font-size:14px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-muted);">@group.Key</h2>
-                </div>
-                <div class="row-list">
-                    @foreach (var item in group)
+    <div class="calendar-card">
+        <div class="month-selector">
+            <button class="month-nav" @onclick="PrevMonth"><span class="material-symbols-outlined">chevron_left</span></button>
+            <h2>@DateFormatting.MonthYearLabel(_currentMonth)</h2>
+            <button class="month-nav" @onclick="NextMonth"><span class="material-symbols-outlined">chevron_right</span></button>
+        </div>
+
+        <div class="calendar-grid">
+            @foreach (var wd in WeekdayLabels)
+            {
+                <div class="weekday">@wd</div>
+            }
+            @foreach (var cell in BuildGridCells())
+            {
+                <div class="day-cell @(cell.Muted ? "muted" : "") @(cell.Date == Today ? "today" : "") @(cell.Date == _selectedDate ? "selected" : "")"
+                     @onclick="() => SelectDate(cell.Date)">
+                    @cell.Date.Day
+                    @if (cell.HasSeries || cell.HasMovie)
                     {
-                        <RowCard Title="@item" />
+                        <div class="event-dots">
+                            @if (cell.HasSeries) { <div class="dot series"></div> }
+                            @if (cell.HasMovie) { <div class="dot movie"></div> }
+                        </div>
                     }
                 </div>
-            </div>
-        }
-        if (!filtered.Any())
-        {
-            <div class="empty">Nada programado en este rango.</div>
-        }
-    }
-    else
-    {
-        <div class="row-list">
-            @if (filtered.Any())
-            {
-                @foreach (var item in filtered)
-                {
-                    <RowCard Title="@item" />
-                }
-            }
-            else
-            {
-                <div class="empty">Nada programado en este rango.</div>
             }
         </div>
-    }
-    <div style="height:20px;"></div>
+    </div>
+
+    <div class="agenda-header">
+        <h3>@DateFormatting.DayNameAndNumber(_selectedDate)</h3>
+        <span>@_agendaItems.Count estreno@(_agendaItems.Count == 1 ? "" : "s")</span>
+    </div>
+
+    <div class="schedule-list">
+        @if (_agendaLoading)
+        {
+            <div class="loading-spinner">Cargando...</div>
+        }
+        else if (_agendaItems.Count == 0)
+        {
+            <div class="empty">Nada programado este día.</div>
+        }
+        else
+        {
+            @foreach (var item in _agendaItems)
+            {
+                <ScheduleItem Key="@item.Key" Type="@item.Type" Title="@item.Title" Subtitle="@item.Subtitle"
+                              TimeLabel="@item.TimeLabel" TimeIcon="@item.TimeIcon" PosterPath="@item.PosterPath"
+                              NotificationsOn="@item.NotificationsOn" />
+            }
+        }
+    </div>
 }
 
 @code {
-    private readonly IReadOnlyList<ChipItem> _modes =
-    [
-        new("month", "Mes"), new("week", "Semana"), new("day", "Día")
-    ];
+    private static readonly string[] WeekdayLabels = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+    private static DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
 
     private bool _loading = true;
+    private bool _agendaLoading = true;
     private string? _error;
-    private List<TitleSummaryDto> _all = [];
+
+    private List<CalendarEvent> _allEvents = [];
+    private List<string> _followingKeys = [];
+    private List<string> _wantKeys = [];
+
+    private DateOnly _currentMonth;
+    private DateOnly _selectedDate;
+    private List<AgendaCard> _agendaItems = [];
 
     protected override async Task OnInitializedAsync()
     {
+        _selectedDate = Today;
+        _currentMonth = new DateOnly(Today.Year, Today.Month, 1);
+
         try
         {
             var moviesPage1 = await Api.GetUpcomingMoviesAsync(1);
             var moviesPage2 = await Api.GetUpcomingMoviesAsync(2);
+            var moviesPage3 = await Api.GetUpcomingMoviesAsync(3);
 
-            var followingKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
-            var episodes = await Api.GetNextEpisodesAsync(followingKeys);
+            _followingKeys = (await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following)).ToList();
+            _wantKeys = (await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Want)).ToList();
+            var episodes = await Api.GetNextEpisodesAsync(_followingKeys);
 
-            _all = moviesPage1.Concat(moviesPage2)
-                .Concat(episodes.Select(e => e.ToSummary()))
-                .Where(t => t.ReleaseDate is not null)
-                .OrderBy(t => t.ReleaseDate)
-                .ToList();
+            var movieEvents = moviesPage1.Concat(moviesPage2).Concat(moviesPage3)
+                .Where(m => m.ReleaseDate is not null)
+                .DistinctBy(m => m.Key)
+                .Select(m => new CalendarEvent(m.Key, TitleType.Movie, m.ReleaseDate!.Value, m.Title, m.PosterPath, null, null, null));
+
+            var episodeEvents = episodes.Select(e => new CalendarEvent(
+                e.SeriesKey, TitleType.Series, e.AirDate, e.SeriesTitle, e.SeriesPosterPath,
+                e.SeasonNumber, e.EpisodeNumber, e.EpisodeName));
+
+            _allEvents = movieEvents.Concat(episodeEvents).ToList();
+
+            await LoadAgendaAsync(_selectedDate);
         }
         catch (Exception ex)
         {
@@ -95,22 +139,105 @@ else
         }
     }
 
-    private void OnModeChanged(string mode)
+    private IEnumerable<CalendarEvent> FilteredEvents() => State.CalendarFilter switch
     {
-        State.CalendarMode = mode;
-    }
+        "series" => _allEvents.Where(e => e.Type == TitleType.Series),
+        "movie" => _allEvents.Where(e => e.Type == TitleType.Movie),
+        _ => _allEvents // "all" y "platforms" (sin filtro propio todavía) muestran todo
+    };
 
-    private List<TitleSummaryDto> Filtered()
+    private List<DayCellVm> BuildGridCells()
     {
-        var list = _all.Where(t => DateFormatting.DaysUntil(t.ReleaseDate!.Value) >= -3);
+        var eventsByDate = FilteredEvents().GroupBy(e => e.Date).ToDictionary(g => g.Key, g => g.ToList());
 
-        list = State.CalendarMode switch
+        var offset = ((int)_currentMonth.DayOfWeek + 6) % 7; // Lunes=0 ... Domingo=6
+        var daysInMonth = DateTime.DaysInMonth(_currentMonth.Year, _currentMonth.Month);
+        var totalCells = (int)Math.Ceiling((offset + daysInMonth) / 7.0) * 7;
+
+        var cells = new List<DayCellVm>(totalCells);
+        for (var i = 0; i < totalCells; i++)
         {
-            "week" => list.Where(t => DateFormatting.DaysUntil(t.ReleaseDate!.Value) is >= 0 and <= 7),
-            "day" => list.Where(t => DateFormatting.DaysUntil(t.ReleaseDate!.Value) == 0),
-            _ => list
-        };
+            var date = _currentMonth.AddDays(i - offset);
+            var muted = date.Month != _currentMonth.Month;
+            var hasEvents = eventsByDate.TryGetValue(date, out var evs);
+            cells.Add(new DayCellVm(
+                date, muted,
+                hasEvents && evs!.Any(e => e.Type == TitleType.Series),
+                hasEvents && evs!.Any(e => e.Type == TitleType.Movie)));
+        }
 
-        return list.ToList();
+        return cells;
     }
+
+    private async Task SelectDate(DateOnly date)
+    {
+        _selectedDate = date;
+        if (date.Month != _currentMonth.Month || date.Year != _currentMonth.Year)
+        {
+            _currentMonth = new DateOnly(date.Year, date.Month, 1);
+        }
+
+        await LoadAgendaAsync(date);
+    }
+
+    private void PrevMonth() => _currentMonth = _currentMonth.AddMonths(-1);
+    private void NextMonth() => _currentMonth = _currentMonth.AddMonths(1);
+
+    private async Task JumpToToday()
+    {
+        _currentMonth = new DateOnly(Today.Year, Today.Month, 1);
+        await SelectDate(Today);
+    }
+
+    private async Task OnFilterChanged(string filter)
+    {
+        State.CalendarFilter = filter;
+        await LoadAgendaAsync(_selectedDate);
+    }
+
+    private async Task LoadAgendaAsync(DateOnly date)
+    {
+        _agendaLoading = true;
+        StateHasChanged();
+
+        var dayEvents = FilteredEvents().Where(e => e.Date == date).ToList();
+        var cards = new List<AgendaCard>();
+
+        foreach (var ev in dayEvents)
+        {
+            var detail = await Api.GetTitleDetailAsync(ev.Key);
+
+            if (ev.Type == TitleType.Movie)
+            {
+                var genre = detail?.Genres.FirstOrDefault()?.Name;
+                var subtitle = genre is not null && detail?.DurationMinutes is { } duration
+                    ? $"{genre} • {duration} min"
+                    : "Estreno de cine";
+                cards.Add(new AgendaCard(ev.Key, TitleType.Movie, ev.Title, subtitle, "Cine", "theaters",
+                    ev.PosterPath, _wantKeys.Contains(ev.Key)));
+            }
+            else
+            {
+                var episodeLabel = $"S{ev.SeasonNumber:00}E{ev.EpisodeNumber:00}";
+                var subtitle = detail?.PrimaryPlatformLabel is { } platform
+                    ? $"{episodeLabel} • \"{ev.EpisodeName}\" ({platform})"
+                    : $"{episodeLabel} • \"{ev.EpisodeName}\"";
+                cards.Add(new AgendaCard(ev.Key, TitleType.Series, ev.Title, subtitle,
+                    DateFormatting.RelativeDays(date), "schedule", ev.PosterPath, _followingKeys.Contains(ev.Key)));
+            }
+        }
+
+        _agendaItems = cards;
+        _agendaLoading = false;
+    }
+
+    private record CalendarEvent(
+        string Key, TitleType Type, DateOnly Date, string Title, string? PosterPath,
+        int? SeasonNumber, int? EpisodeNumber, string? EpisodeName);
+
+    private record DayCellVm(DateOnly Date, bool Muted, bool HasSeries, bool HasMovie);
+
+    private record AgendaCard(
+        string Key, TitleType Type, string Title, string Subtitle,
+        string TimeLabel, string TimeIcon, string? PosterPath, bool NotificationsOn);
 }

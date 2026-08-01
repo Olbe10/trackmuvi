@@ -12,5 +12,6 @@ public interface ITrackMuviApiClient
     Task<IReadOnlyList<TitleSummaryDto>> GetTrendingTvAsync(CancellationToken ct = default);
     Task<TitleDetailDto?> GetTitleDetailAsync(string titleKey, CancellationToken ct = default);
     Task<IReadOnlyList<UpcomingEpisodeDto>> GetNextEpisodesAsync(IReadOnlyList<string> seriesKeys, CancellationToken ct = default);
+    Task<SeasonDto?> GetSeasonAsync(string seriesKey, int seasonNumber, CancellationToken ct = default);
     Task<IReadOnlyList<GenreDto>> GetGenresAsync(TitleType type, CancellationToken ct = default);
 }

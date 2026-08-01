@@ -9,7 +9,7 @@ namespace TrackMuvi.UI.State;
 public class AppState
 {
     public string DiscoverCategory { get; set; } = "all";
-    public string CalendarMode { get; set; } = "month";
+    public string CalendarFilter { get; set; } = "all";
     public string ListTab { get; set; } = "following";
     public string SearchQuery { get; set; } = string.Empty;
 

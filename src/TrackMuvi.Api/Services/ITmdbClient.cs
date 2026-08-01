@@ -12,6 +12,7 @@ public interface ITmdbClient
     Task<TmdbTvListResponse> GetTrendingTvAsync(CancellationToken ct);
     Task<TmdbMovieDetail?> GetMovieDetailAsync(int tmdbId, CancellationToken ct);
     Task<TmdbTvDetail?> GetTvDetailAsync(int tmdbId, CancellationToken ct);
+    Task<TmdbSeasonDetail?> GetSeasonDetailAsync(int tvId, int seasonNumber, CancellationToken ct);
     Task<List<TmdbGenre>> GetMovieGenresAsync(CancellationToken ct);
     Task<List<TmdbGenre>> GetTvGenresAsync(CancellationToken ct);
 }

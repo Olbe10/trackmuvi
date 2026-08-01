@@ -38,6 +38,15 @@ public class TrackMuviApiClient(HttpClient httpClient) : ITrackMuviApiClient
         return await response.Content.ReadFromJsonAsync<List<UpcomingEpisodeDto>>(cancellationToken: ct) ?? [];
     }
 
+    public async Task<SeasonDto?> GetSeasonAsync(string seriesKey, int seasonNumber, CancellationToken ct = default)
+    {
+        var (_, tmdbId) = TitleKey.Parse(seriesKey);
+        var response = await httpClient.GetAsync($"api/titles/series/{tmdbId}/season/{seasonNumber}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<SeasonDto>(cancellationToken: ct);
+    }
+
     public async Task<IReadOnlyList<GenreDto>> GetGenresAsync(TitleType type, CancellationToken ct = default)
     {
         var segment = type == TitleType.Movie ? "movie" : "tv";

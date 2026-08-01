@@ -15,6 +15,7 @@ public static class ServiceCollectionExtensions
     {
         services.AddDbContext<TrackMuviDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
         services.AddScoped<IPersonalListRepository, PersonalListRepository>();
+        services.AddScoped<IEpisodeWatchRepository, EpisodeWatchRepository>();
         return services;
     }
 }
