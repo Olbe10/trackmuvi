@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TrackMuvi.Data;
 
@@ -10,9 +11,11 @@ using TrackMuvi.Data;
 namespace TrackMuvi.Data.Migrations
 {
     [DbContext(typeof(TrackMuviDbContext))]
-    partial class TrackMuviDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260801183251_AddTitleCache")]
+    partial class AddTitleCache
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "9.0.8");

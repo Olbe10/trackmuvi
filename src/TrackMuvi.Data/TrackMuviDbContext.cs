@@ -8,6 +8,7 @@ public class TrackMuviDbContext(DbContextOptions<TrackMuviDbContext> options) : 
     public DbSet<PersonalStatusEntity> PersonalStatuses => Set<PersonalStatusEntity>();
     public DbSet<ViewHistoryEntity> ViewHistory => Set<ViewHistoryEntity>();
     public DbSet<EpisodeWatchEntity> EpisodeWatches => Set<EpisodeWatchEntity>();
+    public DbSet<TitleCacheEntity> TitleCache => Set<TitleCacheEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +26,11 @@ public class TrackMuviDbContext(DbContextOptions<TrackMuviDbContext> options) : 
         modelBuilder.Entity<EpisodeWatchEntity>(entity =>
         {
             entity.HasKey(e => new { e.TitleKey, e.SeasonNumber, e.EpisodeNumber });
+        });
+
+        modelBuilder.Entity<TitleCacheEntity>(entity =>
+        {
+            entity.HasKey(e => e.TitleKey);
         });
     }
 }

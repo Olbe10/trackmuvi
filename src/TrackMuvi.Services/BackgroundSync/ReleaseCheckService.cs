@@ -1,77 +1,142 @@
+using TrackMuvi.Data.Entities;
+using TrackMuvi.Data.Repositories;
 using TrackMuvi.Services.Api;
 using TrackMuvi.Services.Notifications;
 using TrackMuvi.Services.Personal;
 using TrackMuvi.Shared.Enums;
+using TrackMuvi.Shared.Models;
 
 namespace TrackMuvi.Services.BackgroundSync;
 
+/// <summary>
+/// Sincroniza estrenos/episodios de lo que el usuario sigue y agenda las notificaciones
+/// correspondientes. Cada título sincronizado queda en TitleCache (SQLite local): eso es lo que
+/// permite comparar "¿cambió la fecha?" sin depender de que la API esté disponible en ese momento
+/// (si falla la llamada, simplemente no se actualiza nada este ciclo y se reintenta en el próximo;
+/// lo que ya se agendó antes con INotificationService sigue en pie porque vive en el SO, no acá).
+/// </summary>
 public class ReleaseCheckService(
     ITrackMuviApiClient apiClient,
     IPersonalListService personalList,
     INotificationService notifications,
+    ITitleCacheRepository titleCache,
     IKeyValueStore store) : IReleaseCheckService
 {
     public async Task RunCheckAsync(CancellationToken ct = default)
     {
         var followingKeys = await personalList.GetKeysByFlagAsync(PersonalStatusFlag.Following, ct);
-        await CheckNewEpisodesAsync(followingKeys, ct);
-
         var wantKeys = await personalList.GetKeysByFlagAsync(PersonalStatusFlag.Want, ct);
-        var trackedKeys = followingKeys.Concat(wantKeys).Distinct().ToList();
-        await CheckReleaseDatesAsync(trackedKeys, ct);
+        var movieKeys = followingKeys.Concat(wantKeys)
+            .Distinct()
+            .Where(k => TitleKey.Parse(k).Type == TitleType.Movie)
+            .ToList();
+
+        await SyncEpisodesAsync(followingKeys, ct);
+        await SyncMoviesAsync(movieKeys, ct);
+        await RemoveStaleEntriesAsync(followingKeys.Concat(movieKeys).ToHashSet(), ct);
     }
 
-    private async Task CheckNewEpisodesAsync(IReadOnlyList<string> followingKeys, CancellationToken ct)
+    private async Task SyncEpisodesAsync(IReadOnlyList<string> followingKeys, CancellationToken ct)
     {
         if (followingKeys.Count == 0) return;
-        if (store.Get(NotificationPreferenceKeys.NewEpisodes) == "0") return;
 
-        var episodes = await apiClient.GetNextEpisodesAsync(followingKeys, ct);
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        IReadOnlyList<UpcomingEpisodeDto> episodes;
+        try
+        {
+            episodes = await apiClient.GetNextEpisodesAsync(followingKeys, ct);
+        }
+        catch
+        {
+            return; // sin red/API: lo ya agendado en syncs anteriores sigue en pie
+        }
+
+        var notifyNewEpisodes = store.Get(NotificationPreferenceKeys.NewEpisodes) != "0";
 
         foreach (var episode in episodes)
         {
-            if (episode.AirDate < today || episode.AirDate > today.AddDays(2)) continue;
+            var cached = await titleCache.GetAsync(episode.SeriesKey, ct);
+            var isNewEpisode = cached?.NextEpisodeSeason != episode.SeasonNumber
+                || cached?.NextEpisodeNumber != episode.EpisodeNumber
+                || cached?.NextEpisodeAirDate != episode.AirDate;
 
-            var notifiedKey = $"notified-episode:{episode.SeriesKey}:{episode.SeasonNumber}:{episode.EpisodeNumber}";
-            if (store.Get(notifiedKey) is not null) continue;
+            await titleCache.UpsertAsync(new TitleCacheEntity
+            {
+                TitleKey = episode.SeriesKey,
+                Type = TitleType.Series,
+                Title = episode.SeriesTitle,
+                PosterPath = episode.SeriesPosterPath,
+                NextEpisodeSeason = episode.SeasonNumber,
+                NextEpisodeNumber = episode.EpisodeNumber,
+                NextEpisodeName = episode.EpisodeName,
+                NextEpisodeAirDate = episode.AirDate,
+                LastSyncedAt = DateTimeOffset.UtcNow,
+            }, ct);
 
-            await notifications.ScheduleNewEpisodeAsync(episode);
-            store.Set(notifiedKey, "1");
+            if (isNewEpisode && notifyNewEpisodes)
+            {
+                await notifications.ScheduleEpisodeAsync(
+                    episode.SeriesKey, episode.SeriesTitle, episode.SeasonNumber, episode.EpisodeNumber,
+                    episode.EpisodeName, episode.AirDate);
+            }
         }
     }
 
-    private async Task CheckReleaseDatesAsync(IReadOnlyList<string> trackedKeys, CancellationToken ct)
+    private async Task SyncMoviesAsync(IReadOnlyList<string> movieKeys, CancellationToken ct)
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        var tomorrow = today.AddDays(1);
+        if (movieKeys.Count == 0) return;
 
-        foreach (var key in trackedKeys)
+        var notifyReleases = store.Get(NotificationPreferenceKeys.MovieReleases) != "0";
+        var notifyDateChanges = store.Get(NotificationPreferenceKeys.DateChanges) == "1";
+
+        foreach (var key in movieKeys)
         {
-            var detail = await apiClient.GetTitleDetailAsync(key, ct);
+            TitleDetailDto? detail;
+            try
+            {
+                detail = await apiClient.GetTitleDetailAsync(key, ct);
+            }
+            catch
+            {
+                continue; // sin red/API: se reintenta en el próximo ciclo, no se pierde lo agendado
+            }
+
             if (detail?.ReleaseDate is not { } releaseDate) continue;
 
-            var dateStoreKey = $"release-date:{key}";
-            var previousRaw = store.Get(dateStoreKey);
-            if (previousRaw is not null
-                && DateOnly.TryParse(previousRaw, out var previousDate)
-                && previousDate != releaseDate
-                && store.Get(NotificationPreferenceKeys.DateChanges) == "1")
-            {
-                await notifications.ScheduleDateChangedAsync(detail, previousDate, releaseDate);
-            }
+            var cached = await titleCache.GetAsync(key, ct);
 
-            store.Set(dateStoreKey, releaseDate.ToString("yyyy-MM-dd"));
-
-            if (releaseDate == tomorrow && store.Get(NotificationPreferenceKeys.MovieReleases) != "0")
+            await titleCache.UpsertAsync(new TitleCacheEntity
             {
-                var tomorrowNotifiedKey = $"notified-tomorrow:{key}:{releaseDate:yyyy-MM-dd}";
-                if (store.Get(tomorrowNotifiedKey) is null)
-                {
-                    await notifications.ScheduleReleaseTomorrowAsync(detail);
-                    store.Set(tomorrowNotifiedKey, "1");
-                }
+                TitleKey = key,
+                Type = TitleType.Movie,
+                Title = detail.Title,
+                PosterPath = detail.PosterPath,
+                ReleaseDate = releaseDate,
+                LastSyncedAt = DateTimeOffset.UtcNow,
+            }, ct);
+
+            if (cached?.ReleaseDate is { } previousDate && previousDate != releaseDate)
+            {
+                if (notifyDateChanges) await notifications.NotifyDateChangedAsync(key, detail.Title, previousDate, releaseDate);
+                if (notifyReleases) await notifications.ScheduleMovieReleaseAsync(key, detail.Title, releaseDate);
             }
+            else if (cached is null && notifyReleases)
+            {
+                await notifications.ScheduleMovieReleaseAsync(key, detail.Title, releaseDate);
+            }
+        }
+    }
+
+    /// <summary>Si el usuario dejó de seguir/querer ver algo, se cancela lo agendado para que no
+    /// llegue una notificación de algo que ya no le interesa, y se limpia el cache local.</summary>
+    private async Task RemoveStaleEntriesAsync(HashSet<string> trackedKeys, CancellationToken ct)
+    {
+        var cached = await titleCache.GetAllAsync(ct);
+        foreach (var entry in cached)
+        {
+            if (trackedKeys.Contains(entry.TitleKey)) continue;
+
+            await notifications.CancelAsync(entry.TitleKey);
+            await titleCache.RemoveAsync(entry.TitleKey, ct);
         }
     }
 }
