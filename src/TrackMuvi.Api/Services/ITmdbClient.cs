@@ -17,6 +17,13 @@ public interface ITmdbClient
     Task<TmdbMovieListResponse> GetTrendingMoviesAsync(CancellationToken ct);
     Task<TmdbTvListResponse> GetTrendingTvAsync(CancellationToken ct);
     Task<TmdbMovieDetail?> GetMovieDetailAsync(int tmdbId, CancellationToken ct);
+
+    /// <summary>
+    /// Endpoint liviano de solo watch/providers (sin credits/videos/images como el detalle completo).
+    /// Se usa para saber la plataforma real de cada película en listas (calendario, próximos estrenos)
+    /// sin pagar el costo de un GetMovieDetailAsync completo por cada una.
+    /// </summary>
+    Task<TmdbWatchProvidersResponse?> GetMovieWatchProvidersAsync(int tmdbId, CancellationToken ct);
     Task<TmdbTvDetail?> GetTvDetailAsync(int tmdbId, CancellationToken ct);
     Task<TmdbSeasonDetail?> GetSeasonDetailAsync(int tvId, int seasonNumber, CancellationToken ct);
     Task<List<TmdbGenre>> GetMovieGenresAsync(CancellationToken ct);

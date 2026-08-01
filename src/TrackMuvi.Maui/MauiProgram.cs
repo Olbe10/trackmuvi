@@ -54,7 +54,31 @@ public static class MauiProgram
             scope.ServiceProvider.GetRequiredService<TrackMuviDbContext>().Database.Migrate();
         }
 
+        // ReleaseCheckService (estrenos mañana, nuevos episodios, cambios de fecha) existía pero
+        // nadie lo llamaba. Lo corremos al abrir la app y de ahí en más cada 6 horas mientras el
+        // proceso siga vivo. Ojo: esto NO dispara notificaciones con la app cerrada/matada (eso
+        // necesitaría un WorkManager nativo aparte); es "best effort" mientras se usa la app.
+        _ = RunReleaseCheckLoopAsync(app.Services);
+
         return app;
+    }
+
+    private static async Task RunReleaseCheckLoopAsync(IServiceProvider services)
+    {
+        while (true)
+        {
+            try
+            {
+                using var scope = services.CreateScope();
+                await scope.ServiceProvider.GetRequiredService<IReleaseCheckService>().RunCheckAsync();
+            }
+            catch
+            {
+                // best effort: un fallo de red/API acá no debe tumbar la app.
+            }
+
+            await Task.Delay(TimeSpan.FromHours(6));
+        }
     }
 
     private static string ReadApiBaseUrl()

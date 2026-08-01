@@ -167,6 +167,11 @@ public static class TitleMapper
         return string.IsNullOrWhiteSpace(entry?.Rating) ? null : entry.Rating;
     }
 
+    /// <summary>Plataforma principal (primer flatrate/free/ads/rent/buy) o null si todavía no hay
+    /// ninguna disponible en la región (p. ej. una película que solo está en cines).</summary>
+    public static string? ExtractPrimaryPlatformLabel(TmdbWatchProvidersResponse? providers, string region) =>
+        ExtractWatchProviders(providers, region).FirstOrDefault()?.ProviderName;
+
     private static List<WatchProviderDto> ExtractWatchProviders(TmdbWatchProvidersResponse? providers, string region)
     {
         if (providers is null || !providers.Results.TryGetValue(region, out var country)) return [];

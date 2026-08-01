@@ -35,6 +35,14 @@ public class TmdbClient(HttpClient httpClient, IOptions<TmdbOptions> options) : 
     public Task<TmdbTvListResponse> GetTrendingTvAsync(CancellationToken ct) =>
         GetAsync<TmdbTvListResponse>($"trending/tv/week?language={_options.DefaultLanguage}", ct);
 
+    public async Task<TmdbWatchProvidersResponse?> GetMovieWatchProvidersAsync(int tmdbId, CancellationToken ct)
+    {
+        var response = await httpClient.GetAsync($"movie/{tmdbId}/watch/providers", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<TmdbWatchProvidersResponse>(cancellationToken: ct);
+    }
+
     public async Task<TmdbMovieDetail?> GetMovieDetailAsync(int tmdbId, CancellationToken ct)
     {
         var response = await httpClient.GetAsync(

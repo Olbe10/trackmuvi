@@ -105,6 +105,11 @@ else
     private List<CalendarEvent> _episodeEvents = [];
     private List<string> _followingKeys = [];
     private List<string> _wantKeys = [];
+    private Dictionary<string, TitleDetailDto> _markedMovieDetails = [];
+
+    /// <summary>Cache de meses ya pedidos en esta sesión, para no repetir la llamada a la API
+    /// al ir y volver entre meses ya visitados.</summary>
+    private readonly Dictionary<(int Year, int Month), List<CalendarEvent>> _monthCache = [];
 
     private DateOnly _currentMonth;
     private DateOnly _selectedDate;
@@ -123,8 +128,9 @@ else
             var episodes = await Api.GetNextEpisodesAsync(_followingKeys);
             _episodeEvents = episodes.Select(e => new CalendarEvent(
                 e.SeriesKey, TitleType.Series, e.AirDate, e.SeriesTitle, e.SeriesPosterPath,
-                e.SeasonNumber, e.EpisodeNumber, e.EpisodeName)).ToList();
+                e.SeasonNumber, e.EpisodeNumber, e.EpisodeName, null)).ToList();
 
+            await LoadMarkedMovieDetailsAsync();
             await LoadMoviesForCurrentMonthAsync();
             await LoadAgendaAsync(_selectedDate);
         }
@@ -139,12 +145,39 @@ else
     }
 
     /// <summary>
+    /// Trae el detalle de las películas marcadas "Quiero verla"/"Siguiendo" una sola vez, para
+    /// poder mostrarlas en el calendario aunque no estén entre las ~40 más populares del mes que
+    /// devuelve discover/movie (ver LoadMoviesForCurrentMonthAsync).
+    /// </summary>
+    private async Task LoadMarkedMovieDetailsAsync()
+    {
+        var movieKeys = _followingKeys.Concat(_wantKeys)
+            .Distinct()
+            .Where(k => TitleKey.Parse(k).Type == TitleType.Movie)
+            .ToList();
+
+        var details = await Task.WhenAll(movieKeys.Select(k => Api.GetTitleDetailAsync(k)));
+
+        _markedMovieDetails = movieKeys
+            .Zip(details, (key, detail) => (key, detail))
+            .Where(t => t.detail is not null)
+            .ToDictionary(t => t.key, t => t.detail!);
+    }
+
+    /// <summary>
     /// Pide a la API solo los estrenos de cine del mes que se está mostrando (TMDb /discover/movie
     /// soporta rango de fechas real, a diferencia del viejo /movie/upcoming que daba una ventana
     /// fija de corto plazo). Se vuelve a llamar cada vez que cambia el mes visible.
     /// </summary>
     private async Task LoadMoviesForCurrentMonthAsync()
     {
+        var cacheKey = (_currentMonth.Year, _currentMonth.Month);
+        if (_monthCache.TryGetValue(cacheKey, out var cached))
+        {
+            _movieEvents = cached;
+            return;
+        }
+
         _monthLoading = true;
         StateHasChanged();
 
@@ -154,12 +187,22 @@ else
         var page1 = await Api.GetUpcomingMoviesAsync(from, to, page: 1);
         var page2 = await Api.GetUpcomingMoviesAsync(from, to, page: 2);
 
-        _movieEvents = page1.Concat(page2)
-            .Where(m => m.ReleaseDate is not null)
+        var events = page1.Concat(page2)
+            // TMDb a veces devuelve alguna fecha fuera del rango pedido (region vs primary release
+            // date); se descarta acá para no pintar un punto en el día equivocado.
+            .Where(m => m.ReleaseDate is { } d && d >= from && d <= to)
             .DistinctBy(m => m.Key)
-            .Select(m => new CalendarEvent(m.Key, TitleType.Movie, m.ReleaseDate!.Value, m.Title, m.PosterPath, null, null, null))
+            .Select(m => new CalendarEvent(m.Key, TitleType.Movie, m.ReleaseDate!.Value, m.Title, m.PosterPath, null, null, null, m.PrimaryPlatformLabel))
             .ToList();
 
+        var marked = _markedMovieDetails.Values
+            .Where(d => d.ReleaseDate is { } rd && rd >= from && rd <= to)
+            .Select(d => new CalendarEvent(d.Key, TitleType.Movie, d.ReleaseDate!.Value, d.Title, d.PosterPath, null, null, null, d.PrimaryPlatformLabel));
+
+        var merged = events.Concat(marked).DistinctBy(e => e.Key).ToList();
+
+        _monthCache[cacheKey] = merged;
+        _movieEvents = merged;
         _monthLoading = false;
     }
 
@@ -169,7 +212,11 @@ else
     {
         "series" => AllEvents().Where(e => e.Type == TitleType.Series),
         "movie" => AllEvents().Where(e => e.Type == TitleType.Movie),
-        _ => AllEvents() // "all" y "platforms" (sin filtro propio todavía) muestran todo
+        // Series ya se ven en streaming/TV; de películas solo cuentan las que ya están
+        // disponibles en alguna plataforma real (no las que siguen únicamente en cines).
+        "platforms" => AllEvents().Where(e => e.Type == TitleType.Series
+            || (e.PlatformLabel is not null && e.PlatformLabel != "Cine")),
+        _ => AllEvents()
     };
 
     private List<DayCellVm> BuildGridCells()
@@ -267,7 +314,7 @@ else
 
     private record CalendarEvent(
         string Key, TitleType Type, DateOnly Date, string Title, string? PosterPath,
-        int? SeasonNumber, int? EpisodeNumber, string? EpisodeName);
+        int? SeasonNumber, int? EpisodeNumber, string? EpisodeName, string? PlatformLabel);
 
     private record DayCellVm(DateOnly Date, bool Muted, bool HasSeries, bool HasMovie);
 

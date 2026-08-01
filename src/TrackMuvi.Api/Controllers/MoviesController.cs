@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using TrackMuvi.Api.Mapping;
+using TrackMuvi.Api.Options;
 using TrackMuvi.Api.Services;
 using TrackMuvi.Shared.Models;
 
@@ -7,7 +9,7 @@ namespace TrackMuvi.Api.Controllers;
 
 [ApiController]
 [Route("api/movies")]
-public class MoviesController(ITmdbClient tmdb, GenreCache genreCache) : ControllerBase
+public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<TmdbOptions> options) : ControllerBase
 {
     /// <summary>
     /// Estrenos de cine en un rango de fechas (Calendario navega mes a mes con esto;
@@ -23,7 +25,17 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache) : Control
 
         var response = await tmdb.DiscoverMoviesByDateRangeAsync(effectiveFrom, effectiveTo, page < 1 ? 1 : page, ct);
         var genres = await genreCache.GetMovieGenresAsync(ct);
-        return Ok(response.Results.Select(m => TitleMapper.MapMovieSummary(m, genres)).ToList());
+        var summaries = response.Results.Select(m => TitleMapper.MapMovieSummary(m, genres)).ToList();
+
+        var region = options.Value.DefaultRegion;
+        var withPlatforms = await Task.WhenAll(summaries.Select(async s =>
+        {
+            var providers = await tmdb.GetMovieWatchProvidersAsync(s.TmdbId, ct);
+            var label = TitleMapper.ExtractPrimaryPlatformLabel(providers, region) ?? "Cine";
+            return s with { PrimaryPlatformLabel = label };
+        }));
+
+        return Ok(withPlatforms);
     }
 
     /// <summary>Películas en tendencia esta semana (carrusel "Próximos estrenos"/"Tendencias").</summary>
