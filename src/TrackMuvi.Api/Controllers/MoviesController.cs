@@ -46,4 +46,43 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
         var genres = await genreCache.GetMovieGenresAsync(ct);
         return Ok(response.Results.Select(m => TitleMapper.MapMovieSummary(m, genres)).ToList());
     }
+
+    /// <summary>
+    /// "Muy pronto": películas ya confirmadas para un año futuro pero sin fecha de estreno
+    /// específica todavía (ver TrackMuvi.Shared.Models.ReleaseDatePrecision). TMDb no tiene un
+    /// filtro directo para esto, así que se recorren varias páginas de discover/movie por
+    /// popularidad y se filtra el patrón de fecha placeholder; el resultado se confirma pidiendo
+    /// el detalle (status distinto de "Released"/"Canceled") solo para esos candidatos, no para
+    /// todo lo que se recorrió.
+    /// </summary>
+    [HttpGet("coming-soon")]
+    public async Task<ActionResult<IReadOnlyList<TitleSummaryDto>>> ComingSoon(CancellationToken ct)
+    {
+        const int pagesToScan = 15;
+        var from = DateOnly.FromDateTime(DateTime.Today).AddDays(1);
+
+        var pages = await Task.WhenAll(Enumerable.Range(1, pagesToScan)
+            .Select(page => tmdb.DiscoverFutureMoviesByPopularityAsync(from, page, ct)));
+
+        var candidates = pages
+            .SelectMany(r => r.Results)
+            .Where(m => DateOnly.TryParse(m.ReleaseDate, out var d) && ReleaseDatePrecision.IsYearOnly(d))
+            .DistinctBy(m => m.Id)
+            .OrderByDescending(m => m.Popularity)
+            .Take(20)
+            .ToList();
+
+        var details = await Task.WhenAll(candidates.Select(m => tmdb.GetMovieDetailAsync(m.Id, ct)));
+        var genres = await genreCache.GetMovieGenresAsync(ct);
+
+        var confirmed = candidates
+            .Zip(details, (summary, detail) => (summary, detail))
+            .Where(t => t.detail is { Status: "Planned" or "In Production" or "Post Production" })
+            .OrderByDescending(t => t.summary.Popularity)
+            .Take(12)
+            .Select(t => TitleMapper.MapMovieSummary(t.summary, genres))
+            .ToList();
+
+        return Ok(confirmed);
+    }
 }

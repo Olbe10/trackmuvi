@@ -14,6 +14,15 @@ public interface ITmdbClient
     /// cualquier mes (pasado o futuro) con resultados realmente acotados a esas fechas.
     /// </summary>
     Task<TmdbMovieListResponse> DiscoverMoviesByDateRangeAsync(DateOnly from, DateOnly to, int page, CancellationToken ct);
+
+    /// <summary>
+    /// discover/movie ordenado por popularidad, sin tope superior de fecha. Se usa para encontrar
+    /// películas confirmadas para un año futuro pero sin fecha exacta todavía (ver
+    /// TrackMuvi.Shared.Models.ReleaseDatePrecision): TMDb no tiene un filtro directo para eso, así
+    /// que hay que recorrer varias páginas por popularidad y filtrar el patrón en memoria.
+    /// </summary>
+    Task<TmdbMovieListResponse> DiscoverFutureMoviesByPopularityAsync(DateOnly from, int page, CancellationToken ct);
+
     Task<TmdbMovieListResponse> GetTrendingMoviesAsync(CancellationToken ct);
     Task<TmdbTvListResponse> GetTrendingTvAsync(CancellationToken ct);
     Task<TmdbMovieDetail?> GetMovieDetailAsync(int tmdbId, CancellationToken ct);

@@ -1,4 +1,5 @@
 using System.Globalization;
+using TrackMuvi.Shared.Models;
 
 namespace TrackMuvi.UI.Formatting;
 
@@ -21,6 +22,11 @@ public static class DateFormatting
 
     public static string MonthFlag(DateOnly date) =>
         date.ToDateTime(TimeOnly.MinValue).ToString("MMMM", Es).ToUpperInvariant();
+
+    /// <summary>Fecha para mostrar, consciente de que TMDb marca "solo se sabe el año" con un
+    /// placeholder de 1 de enero (ver ReleaseDatePrecision).</summary>
+    public static string FullDateOrYear(DateOnly date) =>
+        ReleaseDatePrecision.IsYearOnly(date) ? $"Próximamente ({date.Year})" : FullDate(date);
 
     public static string MonthYearLabel(DateOnly date) =>
         date.ToDateTime(TimeOnly.MinValue).ToString("MMMM yyyy", Es);

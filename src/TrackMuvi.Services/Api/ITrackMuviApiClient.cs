@@ -11,6 +11,9 @@ public interface ITrackMuviApiClient
     Task<IReadOnlyList<TitleSummaryDto>> GetUpcomingMoviesAsync(
         DateOnly? from = null, DateOnly? to = null, int page = 1, CancellationToken ct = default);
     Task<IReadOnlyList<TitleSummaryDto>> GetTrendingMoviesAsync(CancellationToken ct = default);
+    /// <summary>"Muy pronto": películas confirmadas para un año futuro pero sin fecha de estreno
+    /// específica todavía.</summary>
+    Task<IReadOnlyList<TitleSummaryDto>> GetComingSoonMoviesAsync(CancellationToken ct = default);
     Task<IReadOnlyList<TitleSummaryDto>> GetTrendingTvAsync(CancellationToken ct = default);
     Task<TitleDetailDto?> GetTitleDetailAsync(string titleKey, CancellationToken ct = default);
     Task<IReadOnlyList<UpcomingEpisodeDto>> GetNextEpisodesAsync(IReadOnlyList<string> seriesKeys, CancellationToken ct = default);

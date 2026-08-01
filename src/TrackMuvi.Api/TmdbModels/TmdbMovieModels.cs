@@ -30,6 +30,7 @@ public class TmdbMovieDetail
     [JsonPropertyName("poster_path")] public string? PosterPath { get; set; }
     [JsonPropertyName("backdrop_path")] public string? BackdropPath { get; set; }
     [JsonPropertyName("release_date")] public string? ReleaseDate { get; set; }
+    [JsonPropertyName("status")] public string? Status { get; set; }
     [JsonPropertyName("runtime")] public int? Runtime { get; set; }
     [JsonPropertyName("popularity")] public double Popularity { get; set; }
     [JsonPropertyName("genres")] public List<TmdbGenre> Genres { get; set; } = [];

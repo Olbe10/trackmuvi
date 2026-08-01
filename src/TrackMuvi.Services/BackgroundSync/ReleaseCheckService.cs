@@ -103,6 +103,7 @@ public class ReleaseCheckService(
             if (detail?.ReleaseDate is not { } releaseDate) continue;
 
             var cached = await titleCache.GetAsync(key, ct);
+            var previousDate = cached?.ReleaseDate;
 
             await titleCache.UpsertAsync(new TitleCacheEntity
             {
@@ -114,14 +115,27 @@ public class ReleaseCheckService(
                 LastSyncedAt = DateTimeOffset.UtcNow,
             }, ct);
 
-            if (cached?.ReleaseDate is { } previousDate && previousDate != releaseDate)
+            if (previousDate == releaseDate) continue; // sin cambios, nada que avisar/reagendar
+
+            // TMDb marca "solo se sabe el año" con un 1 de enero placeholder (ver
+            // ReleaseDatePrecision): mientras siga así no hay una fecha real que agendar.
+            if (ReleaseDatePrecision.IsYearOnly(releaseDate)) continue;
+
+            var wasPlaceholder = previousDate is { } prev && ReleaseDatePrecision.IsYearOnly(prev);
+
+            if (previousDate is null || wasPlaceholder)
             {
-                if (notifyDateChanges) await notifications.NotifyDateChangedAsync(key, detail.Title, previousDate, releaseDate);
-                if (notifyReleases) await notifications.ScheduleMovieReleaseAsync(key, detail.Title, releaseDate);
+                // primera fecha real conocida (recién la siguen, o pasó de "solo el año" a fecha real)
+                if (wasPlaceholder && notifyReleases)
+                    await notifications.NotifyReleaseDateAnnouncedAsync(key, detail.Title, releaseDate);
+                if (notifyReleases)
+                    await notifications.ScheduleMovieReleaseAsync(key, detail.Title, releaseDate);
             }
-            else if (cached is null && notifyReleases)
+            else
             {
-                await notifications.ScheduleMovieReleaseAsync(key, detail.Title, releaseDate);
+                // ya tenía una fecha real y cambió a otra fecha real
+                if (notifyDateChanges) await notifications.NotifyDateChangedAsync(key, detail.Title, previousDate.Value, releaseDate);
+                if (notifyReleases) await notifications.ScheduleMovieReleaseAsync(key, detail.Title, releaseDate);
             }
         }
     }

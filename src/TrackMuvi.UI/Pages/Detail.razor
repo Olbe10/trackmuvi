@@ -25,7 +25,7 @@ else if (_title is not null)
         </div>
         <h1>@_title.Title</h1>
         <div class="meta-line">
-            @(_title.ReleaseDate is { } d ? DateFormatting.FullDate(d) : "Fecha por confirmar")
+            @(_title.ReleaseDate is { } d ? DateFormatting.FullDateOrYear(d) : "Fecha por confirmar")
             · @(_title.PrimaryPlatformLabel ?? "Sin proveedor")
             @(IsSeries ? $" · {_title.Seasons} temporadas" : $" · {_title.DurationMinutes} min · {_title.Rating}")
         </div>

@@ -24,6 +24,11 @@ public interface INotificationService
     /// entrega si el chequeo logra correr con la app viva/con red en el momento del cambio).</summary>
     Task NotifyDateChangedAsync(string titleKey, string title, DateOnly previousDate, DateOnly newDate);
 
+    /// <summary>"X ya tiene fecha de estreno confirmada" — para cuando una película pasa de "solo
+    /// se sabe el año" (ver ReleaseDatePrecision) a una fecha real. Notificación inmediata, distinta
+    /// de NotifyDateChangedAsync porque antes no había una fecha "real" que haya cambiado.</summary>
+    Task NotifyReleaseDateAnnouncedAsync(string titleKey, string title, DateOnly releaseDate);
+
     /// <summary>Notificación inmediata de prueba, para validar que el canal/los permisos funcionan.</summary>
     Task ShowTestNotificationAsync();
 

@@ -56,7 +56,7 @@ else
 
     @if (!IsSearching)
     {
-        <section class="section-container" style="margin-bottom:50px;">
+        <section class="section-container">
             <div class="section-header"><h2 class="section-title">Estrenos anticipados</h2></div>
             @if (_filteredUpcoming.Count == 0)
             {
@@ -72,6 +72,19 @@ else
                 </div>
             }
         </section>
+
+        @if (_filteredComingSoon.Count > 0)
+        {
+            <section class="section-container" style="margin-bottom:50px;">
+                <div class="section-header"><h2 class="section-title">Muy pronto</h2></div>
+                <div class="poster-scroll">
+                    @foreach (var item in _filteredComingSoon)
+                    {
+                        <PosterCard Title="@item" FlagLabel="@(item.ReleaseDate is { } d ? $"Próx. {d.Year}" : null)" />
+                    }
+                </div>
+            </section>
+        }
     }
 }
 
@@ -85,10 +98,12 @@ else
 
     private List<TitleSummaryDto> _trending = [];
     private List<TitleSummaryDto> _upcoming = [];
+    private List<TitleSummaryDto> _comingSoon = [];
     private List<TitleSummaryDto> _searchResults = [];
 
     private List<TitleSummaryDto> _filteredTrending = [];
     private List<TitleSummaryDto> _filteredUpcoming = [];
+    private List<TitleSummaryDto> _filteredComingSoon = [];
 
     private Timer? _debounceTimer;
     private bool IsSearching => !string.IsNullOrWhiteSpace(State.SearchQuery);
@@ -108,6 +123,7 @@ else
             var trendingTv = await Api.GetTrendingTvAsync();
             _trending = trendingMovies.Concat(trendingTv).OrderByDescending(t => t.Popularity).ToList();
             _upcoming = (await Api.GetUpcomingMoviesAsync()).OrderBy(t => t.ReleaseDate).Take(6).ToList();
+            _comingSoon = (await Api.GetComingSoonMoviesAsync()).ToList();
 
             if (IsSearching)
             {
@@ -172,6 +188,7 @@ else
 
         _filteredTrending = await FilterAsync(trendingSource);
         _filteredUpcoming = IsSearching ? [] : await FilterAsync(_upcoming);
+        _filteredComingSoon = IsSearching ? [] : await FilterAsync(_comingSoon);
     }
 
     private async Task<List<TitleSummaryDto>> FilterAsync(IReadOnlyList<TitleSummaryDto> source)

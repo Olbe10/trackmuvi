@@ -28,6 +28,11 @@ public class AndroidNotificationService : TrackMuvi.Services.Notifications.INoti
         "Cambió la fecha de estreno",
         $"{title} pasó de estrenarse el {previousDate:d 'de' MMMM} al {newDate:d 'de' MMMM}.");
 
+    public Task NotifyReleaseDateAnnouncedAsync(string titleKey, string title, DateOnly releaseDate) => Show(
+        titleKey,
+        "¡Ya tiene fecha de estreno!",
+        $"{title} se estrena el {releaseDate:d 'de' MMMM 'de' yyyy}.");
+
     public Task ShowTestNotificationAsync() => Show(
         "test",
         "TrackMuvi",

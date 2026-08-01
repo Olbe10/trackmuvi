@@ -29,6 +29,14 @@ public class TmdbClient(HttpClient httpClient, IOptions<TmdbOptions> options) : 
             $"&page={page}&language={_options.DefaultLanguage}&region={_options.DefaultRegion}",
             ct);
 
+    public Task<TmdbMovieListResponse> DiscoverFutureMoviesByPopularityAsync(DateOnly from, int page, CancellationToken ct) =>
+        GetAsync<TmdbMovieListResponse>(
+            "discover/movie" +
+            $"?sort_by=popularity.desc" +
+            $"&primary_release_date.gte={from:yyyy-MM-dd}" +
+            $"&page={page}&language={_options.DefaultLanguage}&region={_options.DefaultRegion}",
+            ct);
+
     public Task<TmdbMovieListResponse> GetTrendingMoviesAsync(CancellationToken ct) =>
         GetAsync<TmdbMovieListResponse>($"trending/movie/week?language={_options.DefaultLanguage}", ct);
 
