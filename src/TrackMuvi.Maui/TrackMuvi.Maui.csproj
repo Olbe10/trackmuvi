@@ -44,6 +44,13 @@
         <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'tizen'">6.5</SupportedOSPlatformVersion>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(Configuration)'=='Debug'">
+        <!-- El "Fast Deploy" de Android (empuja DLLs sueltas al dispositivo) falla con XA0129
+             cuando cambian varios ensamblados a la vez (Data/Services/Shared/UI). Se desactiva
+             para que el deploy siempre reinstale el APK completo: un poco más lento, pero confiable. -->
+        <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+    </PropertyGroup>
+
     <ItemGroup>
         <!-- App Icon -->
         <MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
