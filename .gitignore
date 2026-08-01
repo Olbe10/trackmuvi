@@ -27,3 +27,6 @@ appsettings.*.local.json
 ## OS
 .DS_Store
 Thumbs.db
+
+## Config local de herramientas de asistente (no es parte del proyecto)
+.claude/
