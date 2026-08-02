@@ -22,6 +22,10 @@ else if (_title is not null)
         <div>
             <span class="tag" style="background:@UniverseColor(_title.Universe); color:#0f1014;">@(_title.Universe ?? "—")</span>
             <span class="tag" style="background:var(--bg-card); color:#fff;">@string.Join(" · ", _title.Genres.Select(g => g.Name))</span>
+            @if (_title.VoteAverage > 0)
+            {
+                <span class="tag" style="background:var(--bg-card); color:var(--gold);">★ @_title.VoteAverage.ToString("0.0")</span>
+            }
         </div>
         <h1>@_title.Title</h1>
         <div class="meta-line">
@@ -43,6 +47,19 @@ else if (_title is not null)
                 <StatusButton Label="Favorita" On="@_status.Favorite" OnClick="() => Toggle(PersonalStatusFlag.Favorite)" />
             }
         </div>
+
+        @if (_title.WatchProviders.Count > 0)
+        {
+            <div class="block">
+                <h3>Dónde verla</h3>
+                <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                    @foreach (var name in _title.WatchProviders.Select(w => w.ProviderName).Distinct())
+                    {
+                        <span class="tag" style="background:var(--bg-card); color:#fff;">@name</span>
+                    }
+                </div>
+            </div>
+        }
 
         @if (!string.IsNullOrEmpty(_title.TrailerYoutubeKey))
         {

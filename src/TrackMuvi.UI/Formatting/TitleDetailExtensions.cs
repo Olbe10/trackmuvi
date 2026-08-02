@@ -9,5 +9,5 @@ public static class TitleDetailExtensions
         d.Key, d.TmdbId, d.Type, d.Title, d.Universe,
         d.Genres.FirstOrDefault()?.Name,
         d.PrimaryPlatformLabel,
-        d.ReleaseDate, d.Seasons, d.Popularity, d.PosterPath, d.BackdropPath);
+        d.ReleaseDate, d.Seasons, d.Popularity, d.VoteAverage, d.PosterPath, d.BackdropPath);
 }

@@ -8,7 +8,11 @@
     </div>
     <div class="trending-overlay">
         <h3 class="trending-title">@Title.Title</h3>
-        <span class="trending-meta">@Title.PrimaryGenre@(Title.PrimaryPlatformLabel is not null ? $" · {Title.PrimaryPlatformLabel}" : "")</span>
+        <span class="trending-meta">
+            @Title.PrimaryGenre
+            @(Title.VoteAverage > 0 ? $" · ★ {Title.VoteAverage:0.0}" : "")
+            @(Title.PrimaryPlatformLabel is not null ? $" · {Title.PrimaryPlatformLabel}" : "")
+        </span>
     </div>
 </div>
 

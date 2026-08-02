@@ -19,6 +19,7 @@ public class TmdbTvSummary
     [JsonPropertyName("backdrop_path")] public string? BackdropPath { get; set; }
     [JsonPropertyName("first_air_date")] public string? FirstAirDate { get; set; }
     [JsonPropertyName("popularity")] public double Popularity { get; set; }
+    [JsonPropertyName("vote_average")] public double VoteAverage { get; set; }
     [JsonPropertyName("genre_ids")] public List<int> GenreIds { get; set; } = [];
 }
 
@@ -31,6 +32,8 @@ public class TmdbTvDetail
     [JsonPropertyName("backdrop_path")] public string? BackdropPath { get; set; }
     [JsonPropertyName("first_air_date")] public string? FirstAirDate { get; set; }
     [JsonPropertyName("popularity")] public double Popularity { get; set; }
+    [JsonPropertyName("vote_average")] public double VoteAverage { get; set; }
+    [JsonPropertyName("status")] public string? Status { get; set; }
     [JsonPropertyName("number_of_seasons")] public int? NumberOfSeasons { get; set; }
     [JsonPropertyName("genres")] public List<TmdbGenre> Genres { get; set; } = [];
     [JsonPropertyName("production_companies")] public List<TmdbProductionCompany> ProductionCompanies { get; set; } = [];

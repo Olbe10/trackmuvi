@@ -19,6 +19,7 @@ public class TmdbMovieSummary
     [JsonPropertyName("backdrop_path")] public string? BackdropPath { get; set; }
     [JsonPropertyName("release_date")] public string? ReleaseDate { get; set; }
     [JsonPropertyName("popularity")] public double Popularity { get; set; }
+    [JsonPropertyName("vote_average")] public double VoteAverage { get; set; }
     [JsonPropertyName("genre_ids")] public List<int> GenreIds { get; set; } = [];
     [JsonPropertyName("original_language")] public string? OriginalLanguage { get; set; }
 }
@@ -34,6 +35,7 @@ public class TmdbMovieDetail
     [JsonPropertyName("status")] public string? Status { get; set; }
     [JsonPropertyName("runtime")] public int? Runtime { get; set; }
     [JsonPropertyName("popularity")] public double Popularity { get; set; }
+    [JsonPropertyName("vote_average")] public double VoteAverage { get; set; }
     [JsonPropertyName("genres")] public List<TmdbGenre> Genres { get; set; } = [];
     [JsonPropertyName("production_companies")] public List<TmdbProductionCompany> ProductionCompanies { get; set; } = [];
     [JsonPropertyName("belongs_to_collection")] public TmdbCollection? BelongsToCollection { get; set; }

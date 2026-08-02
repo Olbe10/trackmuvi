@@ -17,6 +17,7 @@ public static class TitleMapper
             ReleaseDate: ParseDate(m.ReleaseDate),
             Seasons: null,
             Popularity: m.Popularity,
+            VoteAverage: m.VoteAverage,
             PosterPath: m.PosterPath,
             BackdropPath: m.BackdropPath);
     }
@@ -32,6 +33,7 @@ public static class TitleMapper
             ReleaseDate: ParseDate(t.FirstAirDate),
             Seasons: null,
             Popularity: t.Popularity,
+            VoteAverage: t.VoteAverage,
             PosterPath: t.PosterPath,
             BackdropPath: t.BackdropPath);
     }
@@ -49,14 +51,14 @@ public static class TitleMapper
                     null,
                     item.GenreIds.Select(id => movieGenres.GetValueOrDefault(id)).FirstOrDefault(g => g is not null),
                     "Cine",
-                    ParseDate(item.ReleaseDate), null, item.Popularity, item.PosterPath, item.BackdropPath);
+                    ParseDate(item.ReleaseDate), null, item.Popularity, item.VoteAverage, item.PosterPath, item.BackdropPath);
             case "tv":
                 return new TitleSummaryDto(
                     TitleKey.Build(TitleType.Series, item.Id), item.Id, TitleType.Series, item.Name ?? "(sin título)",
                     null,
                     item.GenreIds.Select(id => tvGenres.GetValueOrDefault(id)).FirstOrDefault(g => g is not null),
                     null,
-                    ParseDate(item.FirstAirDate), null, item.Popularity, item.PosterPath, item.BackdropPath);
+                    ParseDate(item.FirstAirDate), null, item.Popularity, item.VoteAverage, item.PosterPath, item.BackdropPath);
             default:
                 return null; // "person" u otros media_type se ignoran
         }
@@ -85,6 +87,8 @@ public static class TitleMapper
             DurationMinutes: d.Runtime,
             Rating: ExtractMovieCertification(d.ReleaseDates, region),
             Popularity: d.Popularity,
+            VoteAverage: d.VoteAverage,
+            Status: d.Status,
             Synopsis: d.Overview ?? string.Empty,
             Creators: directors,
             Cast: MapCast(d.Credits),
@@ -108,6 +112,8 @@ public static class TitleMapper
             DurationMinutes: null,
             Rating: ExtractTvCertification(d.ContentRatings, region),
             Popularity: d.Popularity,
+            VoteAverage: d.VoteAverage,
+            Status: d.Status,
             Synopsis: d.Overview ?? string.Empty,
             Creators: d.CreatedBy.Select(c => c.Name).ToList(),
             Cast: MapCast(d.Credits),

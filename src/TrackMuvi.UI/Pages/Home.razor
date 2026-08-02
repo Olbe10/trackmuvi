@@ -50,15 +50,25 @@ else
     </section>
 
     <section class="section-container">
-        <div class="section-header"><h2 class="section-title">Series que sigues</h2></div>
+        <div class="section-header">
+            <h2 class="section-title">Series que sigues</h2>
+            @if (_followingTotalCount > 0)
+            {
+                <a style="color:var(--accent); font-size:13px; font-weight:600; cursor:pointer;" @onclick="GoToFollowing">Ver más</a>
+            }
+        </div>
         @if (_following.Count > 0)
         {
             <div class="row-list">
-                @foreach (var item in _following)
+                @foreach (var item in _following.Take(FollowingPreviewCount))
                 {
                     <RowCard Title="@item" />
                 }
             </div>
+        }
+        else if (_followingTotalCount > 0)
+        {
+            <div class="empty">Ninguna de las series que sigues está en emisión ahora mismo.</div>
         }
         else
         {
@@ -78,11 +88,14 @@ else
 }
 
 @code {
+    private const int FollowingPreviewCount = 5;
+
     private bool _loading = true;
     private string? _error;
     private List<TitleSummaryDto> _trending = [];
     private List<TitleSummaryDto> _discoverMore = [];
     private List<TitleSummaryDto> _following = [];
+    private int _followingTotalCount;
     private List<TodayReleaseDto> _todayReleases = [];
 
     protected override async Task OnInitializedAsync()
@@ -98,7 +111,15 @@ else
 
             var followingKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
             var details = await Task.WhenAll(followingKeys.Select(k => Api.GetTitleDetailAsync(k)));
-            _following = details.Where(d => d is not null).Select(d => d!.ToSummary()).ToList();
+            var followingDetails = details.Where(d => d is not null).Select(d => d!).ToList();
+
+            _followingTotalCount = followingDetails.Count;
+            // Solo las que TMDb marca como "en emisión" (no terminadas/canceladas); ver todo lo
+            // que se sigue, en emisión o no, está a un toque en "Ver más" (Mi Lista > Siguiendo).
+            _following = followingDetails
+                .Where(d => d.Status == "Returning Series")
+                .Select(d => d.ToSummary())
+                .ToList();
 
             // Red de seguridad si la notificación push no llegó a tiempo (ver ReleaseCheckService).
             try
@@ -126,4 +147,10 @@ else
         : "Se estrena hoy";
 
     private void GoToDetail(string key) => DetailNavigation.GoToDetail(Nav, State, key);
+
+    private void GoToFollowing()
+    {
+        State.ListTab = "following";
+        Nav.NavigateTo("/mylist");
+    }
 }

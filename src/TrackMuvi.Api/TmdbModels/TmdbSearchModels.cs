@@ -22,5 +22,6 @@ public class TmdbMultiSearchItem
     [JsonPropertyName("release_date")] public string? ReleaseDate { get; set; }
     [JsonPropertyName("first_air_date")] public string? FirstAirDate { get; set; }
     [JsonPropertyName("popularity")] public double Popularity { get; set; }
+    [JsonPropertyName("vote_average")] public double VoteAverage { get; set; }
     [JsonPropertyName("genre_ids")] public List<int> GenreIds { get; set; } = [];
 }

@@ -17,5 +17,6 @@ public record TitleSummaryDto(
     DateOnly? ReleaseDate,
     int? Seasons,
     double Popularity,
+    double VoteAverage,
     string? PosterPath,
     string? BackdropPath);

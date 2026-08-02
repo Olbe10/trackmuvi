@@ -19,6 +19,8 @@ public record TitleDetailDto(
     int? DurationMinutes,
     string? Rating,
     double Popularity,
+    double VoteAverage,
+    string? Status,
     string Synopsis,
     IReadOnlyList<string> Creators,
     IReadOnlyList<CastMemberDto> Cast,
