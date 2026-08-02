@@ -6,18 +6,25 @@
     <div class="row-meta">
         <strong>@Title.Title</strong>
         <div class="sub">
-            @(Title.ReleaseDate is { } d ? DateFormatting.FullDate(d) : "Fecha por confirmar")
+            @(Title.ReleaseDate is { } d ? DateFormatting.FullDateOrYear(d) : "Fecha por confirmar")
             ·
             <span style="color:@(Title.Type == TitleType.Series ? "#a855f7" : "#f5b942")">
                 @(Title.Type == TitleType.Series ? "Serie" : "Película")
             </span>
         </div>
     </div>
-    <div class="row-right">@(Title.ReleaseDate is { } rd ? DateFormatting.RelativeDays(rd) : "")</div>
+    <div class="row-right">@RelativeLabel()</div>
 </div>
 
 @code {
     [Parameter, EditorRequired] public TitleSummaryDto Title { get; set; } = null!;
 
     private void GoToDetail() => DetailNavigation.GoToDetail(Nav, State, Title.Key);
+
+    private string RelativeLabel() => Title.ReleaseDate switch
+    {
+        { } d when ReleaseDatePrecision.IsYearOnly(d) => "",
+        { } d => DateFormatting.RelativeDays(d),
+        null => "",
+    };
 }

@@ -58,7 +58,7 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
     [HttpGet("coming-soon")]
     public async Task<ActionResult<IReadOnlyList<TitleSummaryDto>>> ComingSoon(CancellationToken ct)
     {
-        const int pagesToScan = 15;
+        const int pagesToScan = 40;
         var from = DateOnly.FromDateTime(DateTime.Today).AddDays(1);
 
         var pages = await Task.WhenAll(Enumerable.Range(1, pagesToScan)
@@ -69,7 +69,7 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
             .Where(m => DateOnly.TryParse(m.ReleaseDate, out var d) && ReleaseDatePrecision.IsYearOnly(d))
             .DistinctBy(m => m.Id)
             .OrderByDescending(m => m.Popularity)
-            .Take(20)
+            .Take(60)
             .ToList();
 
         var details = await Task.WhenAll(candidates.Select(m => tmdb.GetMovieDetailAsync(m.Id, ct)));
@@ -79,7 +79,6 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
             .Zip(details, (summary, detail) => (summary, detail))
             .Where(t => t.detail is { Status: "Planned" or "In Production" or "Post Production" })
             .OrderByDescending(t => t.summary.Popularity)
-            .Take(12)
             .Select(t => TitleMapper.MapMovieSummary(t.summary, genres))
             .ToList();
 

@@ -2,6 +2,7 @@
 @implements IDisposable
 @inject ITrackMuviApiClient Api
 @inject AppState State
+@inject NavigationManager Nav
 
 <PageHeader Title="Descubrir">
     <div class="search-bar">
@@ -76,9 +77,15 @@ else
         @if (_filteredComingSoon.Count > 0)
         {
             <section class="section-container" style="margin-bottom:50px;">
-                <div class="section-header"><h2 class="section-title">Muy pronto</h2></div>
+                <div class="section-header">
+                    <h2 class="section-title">Muy pronto</h2>
+                    @if (_filteredComingSoon.Count > ComingSoonPreviewCount)
+                    {
+                        <a style="color:var(--accent); font-size:13px; font-weight:600; cursor:pointer;" @onclick="GoToComingSoon">Ver más</a>
+                    }
+                </div>
                 <div class="poster-scroll">
-                    @foreach (var item in _filteredComingSoon)
+                    @foreach (var item in _filteredComingSoon.Take(ComingSoonPreviewCount))
                     {
                         <PosterCard Title="@item" FlagLabel="@(item.ReleaseDate is { } d ? $"Próx. {d.Year}" : null)" />
                     }
@@ -89,6 +96,8 @@ else
 }
 
 @code {
+    private const int ComingSoonPreviewCount = 6;
+
     private readonly List<ChipItem> _categories = [new("all", "Todo"), new("marvel", "Marvel"), new("dc", "DC"), new("independiente", "Independiente")];
     private readonly Dictionary<string, string> _universeCache = new();
 
@@ -217,6 +226,8 @@ else
             if (d is not null) _universeCache[d.Key] = d.Universe ?? "Independiente";
         }
     }
+
+    private void GoToComingSoon() => Nav.NavigateTo("/coming-soon");
 
     public void Dispose() => _debounceTimer?.Dispose();
 }
