@@ -144,13 +144,20 @@ public class ReleaseCheckService(
                 if (wasPlaceholder && notifyReleases)
                     await notifications.NotifyReleaseDateAnnouncedAsync(key, detail.Title, releaseDate);
                 if (notifyReleases)
+                {
                     await notifications.ScheduleMovieReleaseAsync(key, detail.Title, releaseDate);
+                    await notifications.ScheduleMovieReleasingThisWeekAsync(key, detail.Title, releaseDate);
+                }
             }
             else
             {
                 // ya tenía una fecha real y cambió a otra fecha real
                 if (notifyDateChanges) await notifications.NotifyDateChangedAsync(key, detail.Title, previousDate.Value, releaseDate);
-                if (notifyReleases) await notifications.ScheduleMovieReleaseAsync(key, detail.Title, releaseDate);
+                if (notifyReleases)
+                {
+                    await notifications.ScheduleMovieReleaseAsync(key, detail.Title, releaseDate);
+                    await notifications.ScheduleMovieReleasingThisWeekAsync(key, detail.Title, releaseDate);
+                }
             }
         }
     }

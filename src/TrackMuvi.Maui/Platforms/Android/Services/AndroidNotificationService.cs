@@ -17,6 +17,12 @@ public class AndroidNotificationService : TrackMuvi.Services.Notifications.INoti
         $"{title} se estrena hoy.",
         NotifyTimeFor(releaseDate));
 
+    public Task ScheduleMovieReleasingThisWeekAsync(string titleKey, string title, DateOnly releaseDate) => Schedule(
+        $"{titleKey}-week",
+        "Se estrena esta semana",
+        $"{title} se estrena el {releaseDate:d 'de' MMMM}.",
+        NotifyTimeFor(releaseDate.AddDays(-7)));
+
     public Task ScheduleEpisodeAsync(
         string seriesKey, string seriesTitle, int seasonNumber, int episodeNumber, string episodeName, DateOnly airDate) => Schedule(
         $"{seriesKey}-s{seasonNumber}e{episodeNumber}",
@@ -42,6 +48,7 @@ public class AndroidNotificationService : TrackMuvi.Services.Notifications.INoti
     public Task CancelAsync(string titleKey)
     {
         LocalNotificationCenter.Current.Cancel(NotificationIdFor(titleKey));
+        LocalNotificationCenter.Current.Cancel(NotificationIdFor($"{titleKey}-week"));
         return Task.CompletedTask;
     }
 

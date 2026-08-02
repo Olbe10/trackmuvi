@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Maui.LifecycleEvents;
 using Plugin.LocalNotification;
 using TrackMuvi.Data;
 using TrackMuvi.Maui.Services;
@@ -13,6 +14,10 @@ namespace TrackMuvi.Maui;
 
 public static class MauiProgram
 {
+    /// <summary>Se completa recién después de builder.Build(); el hook de OnResume (registrado
+    /// antes de Build) lo lee más tarde, cuando ya tiene valor.</summary>
+    private static IServiceProvider? _services;
+
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
@@ -22,6 +27,17 @@ public static class MauiProgram
             .ConfigureFonts(fonts =>
             {
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
+            })
+            .ConfigureLifecycleEvents(events =>
+            {
+                // Cada vez que se vuelve a la app (no solo en el arranque en frío) se corre el
+                // chequeo de estrenos/episodios. Es lo más cerca de "siempre al día" que se puede
+                // lograr sin un worker nativo en segundo plano: cubre el caso común de abrir la
+                // app varias veces por día, no solo la primera vez que se instala.
+                events.AddAndroid(android => android.OnResume(activity =>
+                {
+                    if (_services is { } services) _ = RunReleaseCheckOnceAsync(services);
+                }));
             });
 
         builder.Services.AddMauiBlazorWebView();
@@ -48,6 +64,7 @@ public static class MauiProgram
 #endif
 
         var app = builder.Build();
+        _services = app.Services;
 
         using (var scope = app.Services.CreateScope())
         {
@@ -55,9 +72,10 @@ public static class MauiProgram
         }
 
         // ReleaseCheckService (estrenos mañana, nuevos episodios, cambios de fecha) existía pero
-        // nadie lo llamaba. Lo corremos al abrir la app y de ahí en más cada 6 horas mientras el
-        // proceso siga vivo. Ojo: esto NO dispara notificaciones con la app cerrada/matada (eso
-        // necesitaría un WorkManager nativo aparte); es "best effort" mientras se usa la app.
+        // nadie lo llamaba. Se corre: al arrancar en frío, cada vez que se vuelve a la app (ver
+        // OnResume arriba), y de ahí en más cada 6 horas mientras el proceso siga vivo. Ojo: nada
+        // de esto dispara notificaciones con la app cerrada/matada del todo (eso necesitaría un
+        // WorkManager nativo aparte); es "best effort" mientras se usa la app con cierta frecuencia.
         _ = RunReleaseCheckLoopAsync(app.Services);
 
         return app;
@@ -67,17 +85,21 @@ public static class MauiProgram
     {
         while (true)
         {
-            try
-            {
-                using var scope = services.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<IReleaseCheckService>().RunCheckAsync();
-            }
-            catch
-            {
-                // best effort: un fallo de red/API acá no debe tumbar la app.
-            }
-
+            await RunReleaseCheckOnceAsync(services);
             await Task.Delay(TimeSpan.FromHours(6));
+        }
+    }
+
+    private static async Task RunReleaseCheckOnceAsync(IServiceProvider services)
+    {
+        try
+        {
+            using var scope = services.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IReleaseCheckService>().RunCheckAsync();
+        }
+        catch
+        {
+            // best effort: un fallo de red/API acá no debe tumbar la app.
         }
     }
 

@@ -16,6 +16,10 @@ public interface INotificationService
     /// <summary>Agenda "Título X se estrena hoy" para la fecha de estreno real de la película.</summary>
     Task ScheduleMovieReleaseAsync(string titleKey, string title, DateOnly releaseDate);
 
+    /// <summary>Agenda "Título X se estrena esta semana" para 7 días antes del estreno. Es un aviso
+    /// aparte del de "hoy" (id de notificación distinto), no lo reemplaza.</summary>
+    Task ScheduleMovieReleasingThisWeekAsync(string titleKey, string title, DateOnly releaseDate);
+
     /// <summary>Agenda "Nuevo episodio" para la fecha de emisión real del próximo episodio.</summary>
     Task ScheduleEpisodeAsync(
         string seriesKey, string seriesTitle, int seasonNumber, int episodeNumber, string episodeName, DateOnly airDate);
