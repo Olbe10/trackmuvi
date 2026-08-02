@@ -20,6 +20,7 @@ public class TmdbMovieSummary
     [JsonPropertyName("release_date")] public string? ReleaseDate { get; set; }
     [JsonPropertyName("popularity")] public double Popularity { get; set; }
     [JsonPropertyName("genre_ids")] public List<int> GenreIds { get; set; } = [];
+    [JsonPropertyName("original_language")] public string? OriginalLanguage { get; set; }
 }
 
 public class TmdbMovieDetail

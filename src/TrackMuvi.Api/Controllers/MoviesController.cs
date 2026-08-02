@@ -54,11 +54,16 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
     /// popularidad y se filtra el patrón de fecha placeholder; el resultado se confirma pidiendo
     /// el detalle (status distinto de "Released"/"Canceled") solo para esos candidatos, no para
     /// todo lo que se recorrió.
+    /// Se limita a original_language=en: mientras más profundo se escanea, más domina el resultado
+    /// con producciones regionales de perfil muy bajo (a veces sin sinopsis siquiera), que para un
+    /// usuario promedio son "rarezas" no una anticipada. Filtrar por inglés es un proxy simple de
+    /// "conocida" dado que las grandes producciones no angloparlantes casi siempre ya tienen fecha
+    /// confirmada para cuando alcanzan este nivel de popularidad.
     /// </summary>
     [HttpGet("coming-soon")]
     public async Task<ActionResult<IReadOnlyList<TitleSummaryDto>>> ComingSoon(CancellationToken ct)
     {
-        const int pagesToScan = 40;
+        const int pagesToScan = 80;
         var from = DateOnly.FromDateTime(DateTime.Today).AddDays(1);
 
         var pages = await Task.WhenAll(Enumerable.Range(1, pagesToScan)
@@ -66,6 +71,7 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
 
         var candidates = pages
             .SelectMany(r => r.Results)
+            .Where(m => m.OriginalLanguage == "en")
             .Where(m => DateOnly.TryParse(m.ReleaseDate, out var d) && ReleaseDatePrecision.IsYearOnly(d))
             .DistinctBy(m => m.Id)
             .OrderByDescending(m => m.Popularity)
