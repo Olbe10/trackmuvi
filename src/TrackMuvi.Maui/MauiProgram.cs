@@ -66,9 +66,22 @@ public static class MauiProgram
         var app = builder.Build();
         _services = app.Services;
 
-        using (var scope = app.Services.CreateScope())
+        // La migración (y de ahí en más el chequeo de notificaciones) corren en segundo plano.
+        // Antes Database.Migrate() se llamaba de forma síncrona acá mismo, en CreateMauiApp(), que
+        // en Android se ejecuta en el hilo principal: si el archivo SQLite quedaba con un lock
+        // trabado (pasó en un dispositivo real — logcat mostró "Getting pending lock ... failed"),
+        // la app se congelaba lo suficiente para que Android la matara por ANR ("no responde") justo
+        // al abrir. Ahora nunca bloquea el hilo principal, pase lo que pase con ese lock.
+        _ = InitializeAsync(app.Services);
+
+        return app;
+    }
+
+    private static async Task InitializeAsync(IServiceProvider services)
+    {
+        using (var scope = services.CreateScope())
         {
-            scope.ServiceProvider.GetRequiredService<TrackMuviDbContext>().Database.Migrate();
+            await scope.ServiceProvider.GetRequiredService<TrackMuviDbContext>().Database.MigrateAsync();
         }
 
         // ReleaseCheckService (estrenos mañana, nuevos episodios, cambios de fecha) existía pero
@@ -76,9 +89,7 @@ public static class MauiProgram
         // OnResume arriba), y de ahí en más cada 6 horas mientras el proceso siga vivo. Ojo: nada
         // de esto dispara notificaciones con la app cerrada/matada del todo (eso necesitaría un
         // WorkManager nativo aparte); es "best effort" mientras se usa la app con cierta frecuencia.
-        _ = RunReleaseCheckLoopAsync(app.Services);
-
-        return app;
+        await RunReleaseCheckLoopAsync(services);
     }
 
     private static async Task RunReleaseCheckLoopAsync(IServiceProvider services)
