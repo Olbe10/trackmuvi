@@ -61,11 +61,27 @@ public class TmdbClient(HttpClient httpClient, IOptions<TmdbOptions> options) : 
         return await response.Content.ReadFromJsonAsync<TmdbMovieDetail>(cancellationToken: ct);
     }
 
+    public async Task<TmdbMovieDetail?> GetMovieBasicAsync(int tmdbId, CancellationToken ct)
+    {
+        var response = await httpClient.GetAsync($"movie/{tmdbId}?language={_options.DefaultLanguage}", ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<TmdbMovieDetail>(cancellationToken: ct);
+    }
+
     public async Task<TmdbTvDetail?> GetTvDetailAsync(int tmdbId, CancellationToken ct)
     {
         var response = await httpClient.GetAsync(
             $"tv/{tmdbId}?append_to_response=credits,videos,watch/providers,content_ratings,images&language={_options.DefaultLanguage}&include_image_language=null,en",
             ct);
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<TmdbTvDetail>(cancellationToken: ct);
+    }
+
+    public async Task<TmdbTvDetail?> GetTvBasicAsync(int tmdbId, CancellationToken ct)
+    {
+        var response = await httpClient.GetAsync($"tv/{tmdbId}?language={_options.DefaultLanguage}", ct);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<TmdbTvDetail>(cancellationToken: ct);

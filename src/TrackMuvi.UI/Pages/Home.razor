@@ -102,15 +102,21 @@ else
     {
         try
         {
-            var movies = await Api.GetTrendingMoviesAsync();
-            var tv = await Api.GetTrendingTvAsync();
-            var combined = movies.Concat(tv).OrderByDescending(t => t.Popularity).ToList();
+            // Todo lo que no depende de otra llamada arranca junto en vez de encadenarse en serie
+            // (antes: trending -> following -> today-releases, uno atrás del otro).
+            var moviesTask = Api.GetTrendingMoviesAsync();
+            var tvTask = Api.GetTrendingTvAsync();
+            var followingKeysTask = PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
+            var todayReleasesTask = LoadTodayReleasesAsync();
 
+            await Task.WhenAll(moviesTask, tvTask, followingKeysTask, todayReleasesTask);
+
+            var combined = moviesTask.Result.Concat(tvTask.Result).OrderByDescending(t => t.Popularity).ToList();
             _trending = combined.Take(4).ToList();
             _discoverMore = combined.Skip(4).Take(12).ToList();
 
-            var followingKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
-            var details = await Task.WhenAll(followingKeys.Select(k => Api.GetTitleDetailAsync(k)));
+            // Esto sí depende de followingKeysTask, así que recién arranca cuando ese ya resolvió.
+            var details = await Task.WhenAll(followingKeysTask.Result.Select(k => Api.GetTitleDetailAsync(k, full: false)));
             var followingDetails = details.Where(d => d is not null).Select(d => d!).ToList();
 
             _followingTotalCount = followingDetails.Count;
@@ -121,15 +127,7 @@ else
                 .Select(d => d.ToSummary())
                 .ToList();
 
-            // Red de seguridad si la notificación push no llegó a tiempo (ver ReleaseCheckService).
-            try
-            {
-                _todayReleases = (await ReleaseCheck.GetTodayReleasesAsync()).ToList();
-            }
-            catch
-            {
-                // sin red/API: la app sigue siendo usable sin el aviso "Hoy".
-            }
+            _todayReleases = todayReleasesTask.Result.ToList();
         }
         catch (Exception ex)
         {
@@ -138,6 +136,20 @@ else
         finally
         {
             _loading = false;
+        }
+    }
+
+    /// <summary>Red de seguridad si la notificación push no llegó a tiempo (ver ReleaseCheckService).
+    /// Nunca lanza: sin red, Inicio sigue siendo usable, solo no se muestra el aviso "Hoy".</summary>
+    private async Task<IReadOnlyList<TodayReleaseDto>> LoadTodayReleasesAsync()
+    {
+        try
+        {
+            return await ReleaseCheck.GetTodayReleasesAsync();
+        }
+        catch
+        {
+            return [];
         }
     }
 

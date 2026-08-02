@@ -220,7 +220,7 @@ else
         var missing = source.Where(t => !_universeCache.ContainsKey(t.Key)).ToList();
         if (missing.Count == 0) return;
 
-        var details = await Task.WhenAll(missing.Select(t => Api.GetTitleDetailAsync(t.Key)));
+        var details = await Task.WhenAll(missing.Select(t => Api.GetTitleDetailAsync(t.Key, full: false)));
         foreach (var d in details)
         {
             if (d is not null) _universeCache[d.Key] = d.Universe ?? "Independiente";

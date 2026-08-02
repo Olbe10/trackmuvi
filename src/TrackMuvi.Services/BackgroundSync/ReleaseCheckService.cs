@@ -103,18 +103,22 @@ public class ReleaseCheckService(
         var notifyReleases = store.Get(NotificationPreferenceKeys.MovieReleases) != "0";
         var notifyDateChanges = store.Get(NotificationPreferenceKeys.DateChanges) == "1";
 
-        foreach (var key in movieKeys)
+        // Las llamadas de red van en paralelo (antes eran secuenciales, una por una); el resto
+        // (SQLite + agendar notificación) se procesa después, en orden, sin apuro de red.
+        var fetched = await Task.WhenAll(movieKeys.Select(async key =>
         {
-            TitleDetailDto? detail;
             try
             {
-                detail = await apiClient.GetTitleDetailAsync(key, ct);
+                return (key, detail: await apiClient.GetTitleDetailAsync(key, full: false, ct));
             }
             catch
             {
-                continue; // sin red/API: se reintenta en el próximo ciclo, no se pierde lo agendado
+                return (key, detail: (TitleDetailDto?)null); // sin red/API: se reintenta en el próximo ciclo
             }
+        }));
 
+        foreach (var (key, detail) in fetched)
+        {
             if (detail?.ReleaseDate is not { } releaseDate) continue;
 
             var cached = await titleCache.GetAsync(key, ct);

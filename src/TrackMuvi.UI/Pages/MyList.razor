@@ -68,7 +68,7 @@ else
             };
 
             var keys = await PersonalList.GetKeysByFlagAsync(flag);
-            var details = await Task.WhenAll(keys.Select(k => Api.GetTitleDetailAsync(k)));
+            var details = await Task.WhenAll(keys.Select(k => Api.GetTitleDetailAsync(k, full: false)));
             _items = details.Where(d => d is not null).Select(d => d!.ToSummary()).ToList();
             _error = null;
         }

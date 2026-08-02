@@ -105,7 +105,7 @@
         _followingCount = followingKeys.Count;
 
         var relevantKeys = watchedKeys.Concat(followingKeys).Concat(favoriteKeys).Distinct().ToList();
-        var details = await Task.WhenAll(relevantKeys.Select(k => Api.GetTitleDetailAsync(k)));
+        var details = await Task.WhenAll(relevantKeys.Select(k => Api.GetTitleDetailAsync(k, full: false)));
         var resolved = details.Where(d => d is not null).Select(d => d!).ToList();
 
         var totalMinutes = resolved.Where(d => watchedKeys.Contains(d.Key)).Sum(d => d.DurationMinutes ?? 0);
@@ -164,7 +164,7 @@
                 .Distinct()
                 .ToList();
 
-            var details = await Task.WhenAll(keys.Select(k => Api.GetTitleDetailAsync(k)));
+            var details = await Task.WhenAll(keys.Select(k => Api.GetTitleDetailAsync(k, full: false)));
             var count = 0;
             foreach (var d in details)
             {

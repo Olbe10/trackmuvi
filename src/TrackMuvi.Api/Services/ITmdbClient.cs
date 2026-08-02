@@ -28,12 +28,23 @@ public interface ITmdbClient
     Task<TmdbMovieDetail?> GetMovieDetailAsync(int tmdbId, CancellationToken ct);
 
     /// <summary>
+    /// movie/{id} sin append_to_response: mismos campos base que GetMovieDetailAsync (release_date,
+    /// status, overview, runtime, poster, genres, production_companies/belongs_to_collection para
+    /// Universe) pero sin pagar el costo de credits/videos/watch-providers/images/release_dates
+    /// cuando el llamador no los necesita (listas/resúmenes, chequeo de notificaciones, etc.).
+    /// </summary>
+    Task<TmdbMovieDetail?> GetMovieBasicAsync(int tmdbId, CancellationToken ct);
+
+    /// <summary>
     /// Endpoint liviano de solo watch/providers (sin credits/videos/images como el detalle completo).
     /// Se usa para saber la plataforma real de cada película en listas (calendario, próximos estrenos)
     /// sin pagar el costo de un GetMovieDetailAsync completo por cada una.
     /// </summary>
     Task<TmdbWatchProvidersResponse?> GetMovieWatchProvidersAsync(int tmdbId, CancellationToken ct);
     Task<TmdbTvDetail?> GetTvDetailAsync(int tmdbId, CancellationToken ct);
+
+    /// <summary>tv/{id} sin append_to_response, ver GetMovieBasicAsync.</summary>
+    Task<TmdbTvDetail?> GetTvBasicAsync(int tmdbId, CancellationToken ct);
     Task<TmdbSeasonDetail?> GetSeasonDetailAsync(int tvId, int seasonNumber, CancellationToken ct);
     Task<List<TmdbGenre>> GetMovieGenresAsync(CancellationToken ct);
     Task<List<TmdbGenre>> GetTvGenresAsync(CancellationToken ct);

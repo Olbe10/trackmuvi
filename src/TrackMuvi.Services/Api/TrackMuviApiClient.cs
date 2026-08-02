@@ -30,9 +30,9 @@ public class TrackMuviApiClient(HttpClient httpClient) : ITrackMuviApiClient
     public async Task<IReadOnlyList<TitleSummaryDto>> GetTrendingTvAsync(CancellationToken ct = default) =>
         await httpClient.GetFromJsonAsync<List<TitleSummaryDto>>("api/tv/trending", ct) ?? [];
 
-    public async Task<TitleDetailDto?> GetTitleDetailAsync(string titleKey, CancellationToken ct = default)
+    public async Task<TitleDetailDto?> GetTitleDetailAsync(string titleKey, bool full = true, CancellationToken ct = default)
     {
-        var response = await httpClient.GetAsync($"api/titles/by-key/{titleKey}", ct);
+        var response = await httpClient.GetAsync($"api/titles/by-key/{titleKey}?full={full}", ct);
         if (response.StatusCode == HttpStatusCode.NotFound) return null;
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<TitleDetailDto>(cancellationToken: ct);

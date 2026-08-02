@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using TrackMuvi.Api.Mapping;
 using TrackMuvi.Api.Options;
@@ -9,7 +10,7 @@ namespace TrackMuvi.Api.Controllers;
 
 [ApiController]
 [Route("api/movies")]
-public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<TmdbOptions> options) : ControllerBase
+public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<TmdbOptions> options, IMemoryCache cache) : ControllerBase
 {
     /// <summary>
     /// Estrenos de cine en un rango de fechas (Calendario navega mes a mes con esto;
@@ -38,13 +39,20 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
         return Ok(withPlatforms);
     }
 
-    /// <summary>Películas en tendencia esta semana (carrusel "Próximos estrenos"/"Tendencias").</summary>
+    /// <summary>Películas en tendencia esta semana (carrusel "Próximos estrenos"/"Tendencias").
+    /// TMDb solo la actualiza semanalmente, así que se cachea 1h para no repetir la llamada en
+    /// cada carga de Inicio/Descubrir.</summary>
     [HttpGet("trending")]
     public async Task<ActionResult<IReadOnlyList<TitleSummaryDto>>> Trending(CancellationToken ct)
     {
-        var response = await tmdb.GetTrendingMoviesAsync(ct);
-        var genres = await genreCache.GetMovieGenresAsync(ct);
-        return Ok(response.Results.Select(m => TitleMapper.MapMovieSummary(m, genres)).ToList());
+        var result = await cache.GetOrCreateAsync("movies:trending", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+            var response = await tmdb.GetTrendingMoviesAsync(ct);
+            var genres = await genreCache.GetMovieGenresAsync(ct);
+            return response.Results.Select(m => TitleMapper.MapMovieSummary(m, genres)).ToList();
+        });
+        return Ok(result);
     }
 
     /// <summary>
@@ -63,31 +71,41 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
     [HttpGet("coming-soon")]
     public async Task<ActionResult<IReadOnlyList<TitleSummaryDto>>> ComingSoon(CancellationToken ct)
     {
-        const int pagesToScan = 80;
-        var from = DateOnly.FromDateTime(DateTime.Today).AddDays(1);
+        // El escaneo de 80 páginas (~95 llamadas a TMDb entre discover + verificación de status)
+        // es el endpoint más caro de toda la API; esto casi no cambia de una hora a otra, así que
+        // se cachea 6h en vez de repetirlo en cada carga de Descubrir.
+        var result = await cache.GetOrCreateAsync("movies:coming-soon", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
 
-        var pages = await Task.WhenAll(Enumerable.Range(1, pagesToScan)
-            .Select(page => tmdb.DiscoverFutureMoviesByPopularityAsync(from, page, ct)));
+            const int pagesToScan = 80;
+            var from = DateOnly.FromDateTime(DateTime.Today).AddDays(1);
 
-        var candidates = pages
-            .SelectMany(r => r.Results)
-            .Where(m => m.OriginalLanguage == "en")
-            .Where(m => DateOnly.TryParse(m.ReleaseDate, out var d) && ReleaseDatePrecision.IsYearOnly(d))
-            .DistinctBy(m => m.Id)
-            .OrderByDescending(m => m.Popularity)
-            .Take(60)
-            .ToList();
+            var pages = await Task.WhenAll(Enumerable.Range(1, pagesToScan)
+                .Select(page => tmdb.DiscoverFutureMoviesByPopularityAsync(from, page, ct)));
 
-        var details = await Task.WhenAll(candidates.Select(m => tmdb.GetMovieDetailAsync(m.Id, ct)));
-        var genres = await genreCache.GetMovieGenresAsync(ct);
+            var candidates = pages
+                .SelectMany(r => r.Results)
+                .Where(m => m.OriginalLanguage == "en")
+                .Where(m => DateOnly.TryParse(m.ReleaseDate, out var d) && ReleaseDatePrecision.IsYearOnly(d))
+                .DistinctBy(m => m.Id)
+                .OrderByDescending(m => m.Popularity)
+                .Take(60)
+                .ToList();
 
-        var confirmed = candidates
-            .Zip(details, (summary, detail) => (summary, detail))
-            .Where(t => t.detail is { Status: "Planned" or "In Production" or "Post Production" })
-            .OrderByDescending(t => t.summary.Popularity)
-            .Select(t => TitleMapper.MapMovieSummary(t.summary, genres))
-            .ToList();
+            // Solo se necesita el status acá (no cast/videos/watch-providers), así que se usa el
+            // detalle liviano en vez de GetMovieDetailAsync para no pagar esos appends x60.
+            var details = await Task.WhenAll(candidates.Select(m => tmdb.GetMovieBasicAsync(m.Id, ct)));
+            var genres = await genreCache.GetMovieGenresAsync(ct);
 
-        return Ok(confirmed);
+            return candidates
+                .Zip(details, (summary, detail) => (summary, detail))
+                .Where(t => t.detail is { Status: "Planned" or "In Production" or "Post Production" })
+                .OrderByDescending(t => t.summary.Popularity)
+                .Select(t => TitleMapper.MapMovieSummary(t.summary, genres))
+                .ToList();
+        });
+
+        return Ok(result);
     }
 }
