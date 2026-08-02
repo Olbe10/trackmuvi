@@ -8,8 +8,25 @@
 <PageHeader Title="Perfil" />
 
 <div style="display:flex; align-items:center; gap:14px; padding:20px 20px 0;">
-    <div class="avatar-big">O</div>
-    <div><strong style="font-size:16px;">Olbe</strong><div style="color:var(--text-muted); font-size:12px;">Miembro desde 2026</div></div>
+    <div class="avatar-big">@(string.IsNullOrWhiteSpace(_name) ? "?" : _name[0].ToString().ToUpper())</div>
+    <div style="flex:1;">
+        @if (_editingName)
+        {
+            <input value="@_name" autofocus
+                   @oninput="e => _name = e.Value?.ToString() ?? string.Empty"
+                   @onblur="SaveName" @onkeydown="OnNameKeyDown"
+                   placeholder="Tu nombre"
+                   style="background:var(--bg-card); border:1px solid var(--accent); border-radius:8px; padding:6px 10px; color:#fff; font-size:16px; width:100%;" />
+        }
+        else
+        {
+            <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" @onclick="() => _editingName = true">
+                <strong style="font-size:16px;">@(string.IsNullOrWhiteSpace(_name) ? "Agregar tu nombre" : _name)</strong>
+                <span class="material-symbols-outlined" style="font-size:15px; color:var(--text-muted);">edit</span>
+            </div>
+            <div style="color:var(--text-muted); font-size:12px;">Miembro desde @_memberSinceYear</div>
+        }
+    </div>
 </div>
 
 <div class="stats-grid" style="margin-top:18px;">
@@ -49,6 +66,10 @@
 </button>
 
 @code {
+    private string _name = "";
+    private bool _editingName;
+    private int _memberSinceYear;
+
     private int _watchedCount;
     private int _followingCount;
     private string _totalHours = "0h";
@@ -63,6 +84,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _name = Store.Get("profile:name") ?? "";
+
+        var memberSinceRaw = Store.Get("profile:memberSince");
+        if (memberSinceRaw is null || !int.TryParse(memberSinceRaw, out _memberSinceYear))
+        {
+            _memberSinceYear = DateTime.Now.Year;
+            Store.Set("profile:memberSince", _memberSinceYear.ToString());
+        }
+
         _notifyMovies = Store.Get(NotificationPreferenceKeys.MovieReleases) != "0";
         _notifyEpisodes = Store.Get(NotificationPreferenceKeys.NewEpisodes) != "0";
         _notifyDateChanges = Store.Get(NotificationPreferenceKeys.DateChanges) == "1";
@@ -88,6 +118,18 @@
             .OrderByDescending(g => g.Count())
             .Select(g => g.Key!)
             .FirstOrDefault() ?? "—";
+    }
+
+    private void SaveName()
+    {
+        _editingName = false;
+        _name = _name.Trim();
+        Store.Set("profile:name", _name);
+    }
+
+    private void OnNameKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") SaveName();
     }
 
     private void ToggleNotifPref(string key, Action<bool> setLocal)
