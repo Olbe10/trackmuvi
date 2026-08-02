@@ -3,7 +3,7 @@
 
 <div class="trending-card" style="background-image:url('@(TmdbImage.Backdrop(Title.BackdropPath ?? Title.PosterPath))')" @onclick="GoToDetail">
     <div class="trending-rank">@Rank</div>
-    <div class="trending-badge" style="background:@(Title.Type == TitleType.Series ? "#a855f7" : "#f5b942")">
+    <div class="trending-badge" style="background:@(Title.Type == TitleType.Series ? "var(--accent2)" : "var(--gold)")">
         @(Title.Type == TitleType.Series ? "Serie" : "Película")
     </div>
     <div class="trending-overlay">

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>TrackMuvi — Guía de Marca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1014; --surface:#1a1c23; --card:#252830; --border:#2d313a;
+    --text:#ffffff; --muted:#a0a5b1; --accent:#6366f1; --accent2:#9333ea; --accent-light:#8b8cf7;
+    --gold:#f5b942; --page:#f5f5f7; --page-text:#14141a;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--page); color:var(--page-text); font-family:'Inter',sans-serif; }
+  .display{ font-family:'Space Grotesk',sans-serif; }
+  section{ padding:56px 8vw; }
+  section.dark{ background:var(--bg); color:#fff; }
+  h1.hero{ font-family:'Space Grotesk',sans-serif; font-size:clamp(32px,6vw,64px); font-weight:700; margin:0 0 8px; }
+  .kicker{ text-transform:uppercase; letter-spacing:0.18em; font-size:12px; color:var(--accent-light); font-weight:600; margin-bottom:14px; }
+  h2.section-h{ font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:700; margin:0 0 6px; }
+  .sub{ color:var(--muted); font-size:15px; margin-bottom:32px; max-width:640px; }
+  section:not(.dark) .sub{ color:#5a5a66; }
+
+  /* hero */
+  .hero-wrap{ display:flex; align-items:center; gap:40px; flex-wrap:wrap; }
+  .hero-logo{ background:var(--surface); border-radius:24px; padding:40px 50px; display:flex; align-items:center; justify-content:center; }
+
+  /* logo grid */
+  .logo-grid{ display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-bottom:16px; }
+  .logo-tile{ border-radius:18px; padding:36px; display:flex; align-items:center; justify-content:center; min-height:140px; }
+  .logo-tile.on-dark{ background:var(--bg); }
+  .logo-tile.on-light{ background:#ffffff; border:1px solid #e4e4ea; }
+  .logo-tile.on-brand{ background:linear-gradient(135deg,var(--accent),var(--accent2)); }
+  .tile-label{ font-size:12px; color:#8a8a92; margin-top:10px; text-align:center; }
+
+  /* color swatches */
+  .swatch-row{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-top:10px; }
+  .swatch{ border-radius:14px; overflow:hidden; border:1px solid var(--border); }
+  .swatch .fill{ height:90px; }
+  .swatch .info{ padding:10px 12px; background:var(--surface); }
+  .swatch .info .name{ font-weight:600; font-size:13px; }
+  .swatch .info .hex{ font-size:11.5px; color:var(--muted); font-family:monospace; margin-top:2px; }
+
+  /* typography */
+  .type-sample{ margin-bottom:26px; }
+  .type-sample .label{ font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--accent-light); margin-bottom:6px; }
+  .type-sample .txt{ font-family:'Space Grotesk',sans-serif; }
+  .type-sample .txt.body{ font-family:'Inter',sans-serif; }
+
+  /* clearspace / min size */
+  .rule-card{ background:var(--surface); border-radius:16px; padding:28px; display:flex; gap:28px; align-items:center; flex-wrap:wrap; }
+  .clearspace-demo{ background:repeating-linear-gradient(45deg,#20222b,#20222b 8px,#1a1c23 8px,#1a1c23 16px); border:1px dashed var(--accent-light); border-radius:14px; padding:38px; display:flex; align-items:center; justify-content:center; }
+
+  /* do / dont */
+  .dd-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .dd-card{ border-radius:16px; padding:24px; background:var(--surface); }
+  .dd-card.dont{ opacity:0.9; }
+  .dd-icon{ width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; margin-bottom:10px; }
+  .dd-icon.ok{ background:#22c55e; color:#0f1014; }
+  .dd-icon.no{ background:var(--accent2); color:#fff; }
+  .dd-card p{ font-size:13px; color:var(--muted); margin:6px 0 0; }
+  .dd-logo-preview{ background:var(--bg); border-radius:10px; padding:20px; display:flex; align-items:center; justify-content:center; margin-bottom:6px; }
+
+  /* app icon context */
+  .phone-frame{ width:230px; background:#000; border-radius:34px; padding:10px; }
+  .phone-screen{ background:linear-gradient(160deg,#3a3f7a,#1a1c23); border-radius:26px; padding:24px 16px; height:400px; position:relative; }
+  .home-icon{ width:56px; height:56px; border-radius:14px; margin-bottom:6px; }
+  .app-row{ display:flex; gap:18px; }
+  .app-item{ text-align:center; }
+  .app-item span{ font-size:9.5px; color:#fff; }
+  .status-bar-demo{ background:#000; border-radius:8px; padding:6px 14px; display:flex; align-items:center; gap:8px; margin-top:16px; }
+  .status-bar-demo img{ width:14px; height:14px; }
+  .status-bar-demo span{ font-size:10px; color:#fff; }
+
+  code.inline{ background:var(--surface); padding:2px 7px; border-radius:6px; font-size:12.5px; color:var(--accent-light); }
+  ul.spec{ font-size:13.5px; line-height:1.9; color:var(--muted); }
+  .footer-note{ text-align:center; padding:30px; color:#8a8a92; font-size:12px; }
+</style>
+</head>
+<body>
+
+<section class="dark">
+  <div class="kicker">Identidad visual</div>
+  <div class="hero-wrap">
+    <div>
+      <h1 class="hero">TrackMuvi</h1>
+      <p class="sub" style="color:#c7c7d1;">Sistema de marca para la app de descubrimiento y seguimiento de películas y series. Un ícono simple y reconocible a tamaño pequeño, un color con carácter, y una tipografía geométrica que se siente moderna sin caer en genérica.</p>
+    </div>
+    <div class="hero-logo">
+      <svg width="280" height="78" viewBox="0 0 430 120" xmlns="http://www.w3.org/2000/svg">
+        <defs><linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs>
+        <g transform="translate(10,10)">
+          <rect width="100" height="100" rx="24" fill="url(#g1)"/>
+          <path d="M36 30 L36 70 Q36 74 40 72 L70 54 Q73 52 70 50 L40 28 Q36 26 36 30 Z" fill="#fff"/>
+          <circle cx="72" cy="73" r="15" fill="#F5B942" stroke="#6366F1" stroke-width="2"/>
+          <path d="M65 73 L70 78 L79 68" fill="none" stroke="#0F1014" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+        <text x="126" y="72" font-family="'Space Grotesk',sans-serif" font-size="46" font-weight="700"><tspan fill="#fff">Track</tspan><tspan fill="#8B8CF7">Muvi</tspan></text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section class="dark">
+  <div class="kicker">Concepto</div>
+  <h2 class="section-h">El triángulo de play + el check</h2>
+  <p class="sub">El ícono combina un triángulo de reproducción (películas/series) con una insignia circular de check (seguimiento/progreso) en dorado — el gesto de "marcar como visto" convertido en símbolo. Es reconocible incluso a 48px, y el check dorado funciona como acento que puedes reutilizar en la UI para estados "completado" o "en seguimiento".</p>
+  <div class="logo-grid">
+    <div class="logo-tile on-dark">
+      <svg width="90" height="90" viewBox="0 0 120 120"><defs><linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs><rect width="120" height="120" rx="27" fill="url(#g2)"/><path d="M42 36 L42 84 Q42 89 47 86 L82 65 Q86 62 82 60 L47 34 Q42 31 42 36 Z" fill="#fff"/><circle cx="86" cy="88" r="18" fill="#F5B942" stroke="#6366F1" stroke-width="2.5"/><path d="M78 88 L84 94 L95 82" fill="none" stroke="#0F1014" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="logo-tile on-light">
+      <svg width="90" height="90" viewBox="0 0 120 120"><defs><linearGradient id="g3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs><rect width="120" height="120" rx="27" fill="url(#g3)"/><path d="M42 36 L42 84 Q42 89 47 86 L82 65 Q86 62 82 60 L47 34 Q42 31 42 36 Z" fill="#fff"/><circle cx="86" cy="88" r="18" fill="#F5B942" stroke="#6366F1" stroke-width="2.5"/><path d="M78 88 L84 94 L95 82" fill="none" stroke="#0F1014" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="kicker" style="color:#6366f1;">Logo — variaciones</div>
+  <h2 class="section-h">Lockup completo (ícono + wordmark)</h2>
+  <p class="sub">Usa el lockup horizontal completo siempre que el espacio lo permita: encabezados, splash screen, material de marketing, Play Store.</p>
+  <div class="logo-grid">
+    <div>
+      <div class="logo-tile on-dark">
+        <svg width="260" height="72" viewBox="0 0 430 120"><defs><linearGradient id="g4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs><g transform="translate(10,10)"><rect width="100" height="100" rx="24" fill="url(#g4)"/><path d="M36 30 L36 70 Q36 74 40 72 L70 54 Q73 52 70 50 L40 28 Q36 26 36 30 Z" fill="#fff"/><circle cx="72" cy="73" r="15" fill="#F5B942" stroke="#6366F1" stroke-width="2"/><path d="M65 73 L70 78 L79 68" fill="none" stroke="#0F1014" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g><text x="126" y="72" font-family="'Space Grotesk',sans-serif" font-size="46" font-weight="700"><tspan fill="#fff">Track</tspan><tspan fill="#8B8CF7">Muvi</tspan></text></svg>
+      </div>
+      <div class="tile-label">logo-horizontal-dark-bg.svg — sobre fondos oscuros</div>
+    </div>
+    <div>
+      <div class="logo-tile on-light">
+        <svg width="260" height="72" viewBox="0 0 430 120"><defs><linearGradient id="g5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs><g transform="translate(10,10)"><rect width="100" height="100" rx="24" fill="url(#g5)"/><path d="M36 30 L36 70 Q36 74 40 72 L70 54 Q73 52 70 50 L40 28 Q36 26 36 30 Z" fill="#fff"/><circle cx="72" cy="73" r="15" fill="#F5B942" stroke="#6366F1" stroke-width="2"/><path d="M65 73 L70 78 L79 68" fill="none" stroke="#0F1014" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g><text x="126" y="72" font-family="'Space Grotesk',sans-serif" font-size="46" font-weight="700"><tspan fill="#0F1014">Track</tspan><tspan fill="#6366F1">Muvi</tspan></text></svg>
+      </div>
+      <div class="tile-label">logo-horizontal-light-bg.svg — sobre fondos claros</div>
+    </div>
+  </div>
+  <p class="sub">Wordmark solo (sin ícono) — para contextos angostos como pie de página o texto legal:</p>
+  <div class="logo-grid">
+    <div>
+      <div class="logo-tile on-dark"><svg width="200" height="40" viewBox="0 0 360 70"><text x="0" y="52" font-family="'Space Grotesk',sans-serif" font-size="48" font-weight="700"><tspan fill="#fff">Track</tspan><tspan fill="#8B8CF7">Muvi</tspan></text></svg></div>
+      <div class="tile-label">wordmark-dark-bg.svg</div>
+    </div>
+    <div>
+      <div class="logo-tile on-light"><svg width="200" height="40" viewBox="0 0 360 70"><text x="0" y="52" font-family="'Space Grotesk',sans-serif" font-size="48" font-weight="700"><tspan fill="#0F1014">Track</tspan><tspan fill="#6366F1">Muvi</tspan></text></svg></div>
+      <div class="tile-label">wordmark-light-bg.svg</div>
+    </div>
+  </div>
+</section>
+
+<section class="dark">
+  <div class="kicker">Ícono de app</div>
+  <h2 class="section-h">Vista previa en dispositivo</h2>
+  <p class="sub" style="color:#c7c7d1;">Así se ve el ícono en un launcher de Android y en la barra de notificaciones (donde el sistema exige un silueta blanca plana, sin degradado ni color).</p>
+  <div style="display:flex; gap:40px; flex-wrap:wrap; align-items:flex-start;">
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="app-row">
+          <div class="app-item">
+            <svg class="home-icon" viewBox="0 0 120 120"><defs><linearGradient id="g6" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs><rect width="120" height="120" rx="27" fill="url(#g6)"/><path d="M42 36 L42 84 Q42 89 47 86 L82 65 Q86 62 82 60 L47 34 Q42 31 42 36 Z" fill="#fff"/><circle cx="86" cy="88" r="18" fill="#F5B942" stroke="#6366F1" stroke-width="2.5"/><path d="M78 88 L84 94 L95 82" fill="none" stroke="#0F1014" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>TrackMuvi</span>
+          </div>
+        </div>
+        <div class="status-bar-demo">
+          <svg width="14" height="14" viewBox="0 0 512 512"><path d="M182 152 L182 360 Q182 378 199 368 L358 268 Q374 258 358 248 L199 144 Q182 134 182 152 Z" fill="#fff"/></svg>
+          <span>TrackMuvi · Peacemaker estrena mañana</span>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1; min-width:260px;">
+      <h3 style="font-family:'Space Grotesk',sans-serif; font-size:16px; margin-top:0;">Tamaños exportados</h3>
+      <ul class="spec">
+        <li><code class="inline">icon-48.png</code> — mdpi</li>
+        <li><code class="inline">icon-72.png</code> — hdpi</li>
+        <li><code class="inline">icon-96.png</code> — xhdpi</li>
+        <li><code class="inline">icon-144.png</code> — xxhdpi</li>
+        <li><code class="inline">icon-192.png</code> — xxxhdpi / adaptive icon foreground</li>
+        <li><code class="inline">icon-512.png</code> — Play Store listing</li>
+        <li><code class="inline">icon-notification-96.png</code> — silueta blanca para barra de estado</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="kicker" style="color:#6366f1;">Color</div>
+  <h2 class="section-h">Paleta</h2>
+  <p class="sub">El índigo es el color de marca — úsalo para acciones primarias, el ícono y cualquier elemento que necesite decir "esto es TrackMuvi". El dorado es un acento de uso puntual: estados de progreso, insignias, destacados — nunca como color base de una pantalla.</p>
+  <div class="swatch-row">
+    <div class="swatch"><div class="fill" style="background:#6366F1"></div><div class="info"><div class="name">Índigo (marca)</div><div class="hex">#6366F1</div></div></div>
+    <div class="swatch"><div class="fill" style="background:#9333EA"></div><div class="info"><div class="name">Violeta (gradiente)</div><div class="hex">#9333EA</div></div></div>
+    <div class="swatch"><div class="fill" style="background:#F5B942"></div><div class="info"><div class="name">Dorado (acento)</div><div class="hex">#F5B942</div></div></div>
+    <div class="swatch"><div class="fill" style="background:#0F1014"></div><div class="info"><div class="name">Fondo base</div><div class="hex">#0F1014</div></div></div>
+    <div class="swatch"><div class="fill" style="background:#1A1C23"></div><div class="info"><div class="name">Superficie</div><div class="hex">#1A1C23</div></div></div>
+    <div class="swatch"><div class="fill" style="background:#252830"></div><div class="info"><div class="name">Tarjeta</div><div class="hex">#252830</div></div></div>
+    <div class="swatch"><div class="fill" style="background:#A0A5B1"></div><div class="info"><div class="name">Texto secundario</div><div class="hex">#A0A5B1</div></div></div>
+    <div class="swatch"><div class="fill" style="background:#EF4444"></div><div class="info"><div class="name">Alerta / notificación</div><div class="hex">#EF4444</div></div></div>
+  </div>
+</section>
+
+<section class="dark">
+  <div class="kicker">Tipografía</div>
+  <h2 class="section-h">Space Grotesk + Inter</h2>
+  <p class="sub" style="color:#c7c7d1;">Space Grotesk para títulos y el wordmark — geométrica, con carácter técnico, evita sentirse como una fuente de sistema genérica. Inter para todo el texto de interfaz — probada para legibilidad en pantallas pequeñas. Ambas son gratuitas en Google Fonts.</p>
+  <div class="type-sample">
+    <div class="label">Titulares — Space Grotesk Bold</div>
+    <div class="txt" style="font-size:34px; font-weight:700;">Próximos estrenos</div>
+  </div>
+  <div class="type-sample">
+    <div class="label">Subtítulos — Space Grotesk Medium</div>
+    <div class="txt" style="font-size:20px; font-weight:500; color:#c7c7d1;">Series que sigues</div>
+  </div>
+  <div class="type-sample">
+    <div class="label">Cuerpo de texto — Inter Regular</div>
+    <div class="txt body" style="font-size:15px; color:#c7c7d1; max-width:520px;">Matt Murdock equilibra su doble vida como abogado y justiciero en un Nueva York cada vez más peligroso.</div>
+  </div>
+  <div class="type-sample">
+    <div class="label">Botones / etiquetas — Inter SemiBold</div>
+    <div class="txt body" style="font-size:13px; font-weight:600; letter-spacing:0.03em; text-transform:uppercase; color:#8B8CF7;">Seguir · Quiero ver · Favorita</div>
+  </div>
+  <p class="sub" style="margin-top:20px;">Import para web/app: <code class="inline">@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');</code></p>
+</section>
+
+<section>
+  <div class="kicker" style="color:#6366f1;">Espacio de protección y tamaño mínimo</div>
+  <h2 class="section-h">Reglas de uso del ícono</h2>
+  <div class="rule-card" style="background:#eeeef4; border:1px solid #e0e0e8;">
+    <div class="clearspace-demo">
+      <svg width="90" height="90" viewBox="0 0 120 120"><defs><linearGradient id="g7" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs><rect width="120" height="120" rx="27" fill="url(#g7)"/><path d="M42 36 L42 84 Q42 89 47 86 L82 65 Q86 62 82 60 L47 34 Q42 31 42 36 Z" fill="#fff"/><circle cx="86" cy="88" r="18" fill="#F5B942" stroke="#6366F1" stroke-width="2.5"/><path d="M78 88 L84 94 L95 82" fill="none" stroke="#0F1014" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <ul class="spec" style="color:#5a5a66;">
+      <li>Espacio de protección mínimo: el ancho de la insignia dorada de check alrededor de todo el ícono. No coloques texto ni otros elementos dentro de ese margen.</li>
+      <li>Tamaño mínimo recomendado: 32px de alto para el ícono solo, 24px de alto para el lockup completo con texto.</li>
+      <li>Por debajo de 32px, usa solo el triángulo de play (sin la insignia de check) para mantener claridad — así está construido <code class="inline">icon-notification.svg</code>.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="dark">
+  <div class="kicker">Qué sí / qué no</div>
+  <h2 class="section-h">Uso correcto del logo</h2>
+  <div class="dd-grid">
+    <div class="dd-card">
+      <div class="dd-icon ok">✓</div>
+      <div class="dd-logo-preview"><svg width="160" height="44" viewBox="0 0 430 120"><defs><linearGradient id="g8" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs><g transform="translate(10,10)"><rect width="100" height="100" rx="24" fill="url(#g8)"/><path d="M36 30 L36 70 Q36 74 40 72 L70 54 Q73 52 70 50 L40 28 Q36 26 36 30 Z" fill="#fff"/><circle cx="72" cy="73" r="15" fill="#F5B942" stroke="#6366F1" stroke-width="2"/><path d="M65 73 L70 78 L79 68" fill="none" stroke="#0F1014" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></g><text x="126" y="72" font-family="'Space Grotesk',sans-serif" font-size="46" font-weight="700"><tspan fill="#fff">Track</tspan><tspan fill="#8B8CF7">Muvi</tspan></text></svg></div>
+      <p>Usa la versión de fondo correcta (clara u oscura) según el contraste disponible.</p>
+    </div>
+    <div class="dd-card dont">
+      <div class="dd-icon no">✕</div>
+      <div class="dd-logo-preview" style="background:linear-gradient(135deg,#f97316,#22c55e);"><svg width="160" height="44" viewBox="0 0 430 120"><g transform="translate(10,10)"><rect width="100" height="100" rx="24" fill="#111"/><path d="M36 30 L36 70 Q36 74 40 72 L70 54 Q73 52 70 50 L40 28 Q36 26 36 30 Z" fill="#fff"/></g><text x="126" y="72" font-family="'Space Grotesk',sans-serif" font-size="46" font-weight="700" fill="#111">TrackMuvi</text></svg></div>
+      <p>No recolorees el ícono ni lo pongas sobre gradientes ajenos a la marca.</p>
+    </div>
+    <div class="dd-card">
+      <div class="dd-icon ok">✓</div>
+      <div class="dd-logo-preview"><svg width="90" height="90" viewBox="0 0 120 120"><defs><linearGradient id="g9" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs><rect width="120" height="120" rx="27" fill="url(#g9)"/><path d="M42 36 L42 84 Q42 89 47 86 L82 65 Q86 62 82 60 L47 34 Q42 31 42 36 Z" fill="#fff"/><circle cx="86" cy="88" r="18" fill="#F5B942" stroke="#6366F1" stroke-width="2.5"/><path d="M78 88 L84 94 L95 82" fill="none" stroke="#0F1014" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <p>Mantén las proporciones del ícono al escalar — es un solo objeto, no despieces sus partes.</p>
+    </div>
+    <div class="dd-card dont">
+      <div class="dd-icon no">✕</div>
+      <div class="dd-logo-preview" style="transform:skewX(-12deg) scaleY(0.7);"><svg width="90" height="90" viewBox="0 0 120 120"><defs><linearGradient id="g10" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366F1"/><stop offset="100%" stop-color="#9333EA"/></linearGradient></defs><rect width="120" height="120" rx="27" fill="url(#g10)"/><path d="M42 36 L42 84 Q42 89 47 86 L82 65 Q86 62 82 60 L47 34 Q42 31 42 36 Z" fill="#fff"/></svg></div>
+      <p>No distorsiones, inclines ni aplastes el ícono ni el wordmark.</p>
+    </div>
+  </div>
+</section>
+
+<div class="footer-note">TrackMuvi — Guía de marca v1 · Archivos fuente en SVG, editables en Figma, Illustrator o Inkscape.</div>
+
+</body>
+</html>

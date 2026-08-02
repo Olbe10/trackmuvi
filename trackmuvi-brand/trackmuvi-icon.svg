@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -7,7 +6,9 @@
     </linearGradient>
   </defs>
   <rect x="0" y="0" width="512" height="512" rx="114" fill="url(#bgGrad)"/>
+  <!-- play triangle -->
   <path d="M182 152 L182 360 Q182 378 199 368 L358 268 Q374 258 358 248 L199 144 Q182 134 182 152 Z" fill="#ffffff"/>
+  <!-- tracking checkmark badge -->
   <circle cx="378" cy="374" r="66" fill="#F5B942" stroke="#6366F1" stroke-width="8"/>
   <path d="M352 375 L370 393 L406 353" fill="none" stroke="#0F1014" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

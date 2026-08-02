@@ -1,4 +1,5 @@
 using Plugin.LocalNotification;
+using Plugin.LocalNotification.AndroidOption;
 
 namespace TrackMuvi.Maui.Services;
 
@@ -69,6 +70,7 @@ public class AndroidNotificationService : TrackMuvi.Services.Notifications.INoti
             {
                 NotifyTime = notifyTime,
             },
+            Android = AndroidBranding(),
         });
 
     private static Task Show(string idSource, string title, string description) =>
@@ -77,7 +79,15 @@ public class AndroidNotificationService : TrackMuvi.Services.Notifications.INoti
             NotificationId = NotificationIdFor(idSource),
             Title = title,
             Description = description,
+            Android = AndroidBranding(),
         });
+
+    /// <summary>Ícono de marca (silueta blanca, requisito de Android para la barra de estado) en
+    /// vez del ícono genérico por defecto del plugin.</summary>
+    private static AndroidOptions AndroidBranding() => new()
+    {
+        IconSmallName = new AndroidIcon("notification_icon"),
+    };
 
     private static int NotificationIdFor(string source) => Math.Abs(source.GetHashCode() % 1_000_000);
 }

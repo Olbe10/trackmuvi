@@ -8,7 +8,7 @@
         <div class="sub">
             @(Title.ReleaseDate is { } d ? DateFormatting.FullDateOrYear(d) : "Fecha por confirmar")
             ·
-            <span style="color:@(Title.Type == TitleType.Series ? "#a855f7" : "#f5b942")">
+            <span style="color:@(Title.Type == TitleType.Series ? "var(--accent2)" : "var(--gold)")">
                 @(Title.Type == TitleType.Series ? "Serie" : "Película")
             </span>
         </div>

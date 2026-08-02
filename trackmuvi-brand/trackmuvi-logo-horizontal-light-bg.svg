@@ -1,0 +1,17 @@
+<svg width="430" height="120" viewBox="0 0 430 120" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#9333EA"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(10,10)">
+    <rect x="0" y="0" width="100" height="100" rx="24" fill="url(#bgGrad2)"/>
+    <path d="M36 30 L36 70 Q36 74 40 72 L70 54 Q73 52 70 50 L40 28 Q36 26 36 30 Z" fill="#ffffff"/>
+    <circle cx="72" cy="73" r="15" fill="#F5B942" stroke="#6366F1" stroke-width="2"/>
+    <path d="M65 73 L70 78 L79 68" fill="none" stroke="#0F1014" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="126" y="72" font-family="'Space Grotesk','Poppins',sans-serif" font-size="46" font-weight="700">
+    <tspan fill="#0F1014">Track</tspan><tspan fill="#6366F1">Muvi</tspan>
+  </text>
+</svg>

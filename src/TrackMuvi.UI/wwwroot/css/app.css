@@ -1,12 +1,16 @@
 /* Migrado 1:1 desde trackreel-mockup.html — mismos nombres de variables y clases. */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
 :root {
   --bg-base:#0f1014; --bg-surface:#1a1c23; --bg-card:#252830;
-  --text-main:#ffffff; --text-muted:#a0a5b1; --accent:#6366f1;
+  --text-main:#ffffff; --text-muted:#a0a5b1; --accent:#6366f1; --accent2:#9333ea;
   --danger:#ef4444; --gold:#f5b942; --border:#2d313a;
   --marvel:#ef4444; --dc:#3b82f6; --sw:#f5b942; --indie:#a0a5b1;
   --success:#10b981;
+  --font-display:'Space Grotesk','Segoe UI',sans-serif;
+  --font-body:'Inter','Segoe UI',sans-serif;
 }
-* { margin:0; padding:0; box-sizing:border-box; font-family:'Roboto','Segoe UI',sans-serif; -webkit-tap-highlight-color:transparent; }
+* { margin:0; padding:0; box-sizing:border-box; font-family:var(--font-body); -webkit-tap-highlight-color:transparent; }
+h1, h2, h3, .search-title, .section-title, .app-title { font-family:var(--font-display); }
 html, body { background:#000; height:100%; }
 body { display:flex; justify-content:center; align-items:center; min-height:100vh; }
 
@@ -95,7 +99,7 @@ body { display:flex; justify-content:center; align-items:center; min-height:100v
 .gallery div { width:96px; height:60px; border-radius:8px; flex-shrink:0; background-size:cover; background-position:center; }
 
 /* Profile */
-.avatar-big { width:66px; height:66px; border-radius:50%; background:linear-gradient(135deg,var(--accent),#a855f7); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800; }
+.avatar-big { width:66px; height:66px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:24px; font-weight:800; }
 .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 20px; margin-bottom:22px; }
 .stat-box { background:var(--bg-surface); border-radius:14px; padding:14px; text-align:center; }
 .stat-box .num { font-size:20px; font-weight:800; color:var(--accent); }
