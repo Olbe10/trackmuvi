@@ -21,7 +21,7 @@
         else
         {
             <div style="display:flex; align-items:center; gap:6px; cursor:pointer;" @onclick="() => _editingName = true">
-                <strong style="font-size:16px;">@(string.IsNullOrWhiteSpace(_name) ? "Agregar tu nombre" : _name)</strong>
+                <strong style="font-size:16px;">@_name</strong>
                 <span class="material-symbols-outlined" style="font-size:15px; color:var(--text-muted);">edit</span>
             </div>
             <div style="color:var(--text-muted); font-size:12px;">Miembro desde @_memberSinceYear</div>
@@ -84,7 +84,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _name = Store.Get("profile:name") ?? "";
+        _name = Store.Get("profile:name") ?? "Nuevo usuario";
 
         var memberSinceRaw = Store.Get("profile:memberSince");
         if (memberSinceRaw is null || !int.TryParse(memberSinceRaw, out _memberSinceYear))
@@ -124,6 +124,7 @@
     {
         _editingName = false;
         _name = _name.Trim();
+        if (string.IsNullOrWhiteSpace(_name)) _name = "Nuevo usuario";
         Store.Set("profile:name", _name);
     }
 
