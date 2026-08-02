@@ -36,6 +36,21 @@ public class ReleaseCheckService(
         await RemoveStaleEntriesAsync(followingKeys.Concat(movieKeys).ToHashSet(), ct);
     }
 
+    public async Task<IReadOnlyList<TodayReleaseDto>> GetTodayReleasesAsync(CancellationToken ct = default)
+    {
+        await RunCheckAsync(ct);
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var cached = await titleCache.GetAllAsync(ct);
+
+        return cached
+            .Where(e => e.ReleaseDate == today || e.NextEpisodeAirDate == today)
+            .Select(e => new TodayReleaseDto(
+                e.TitleKey, e.Type, e.Title, e.PosterPath,
+                e.NextEpisodeSeason, e.NextEpisodeNumber, e.NextEpisodeName))
+            .ToList();
+    }
+
     private async Task SyncEpisodesAsync(IReadOnlyList<string> followingKeys, CancellationToken ct)
     {
         if (followingKeys.Count == 0) return;

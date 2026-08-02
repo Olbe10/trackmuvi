@@ -1,3 +1,5 @@
+using TrackMuvi.Shared.Models;
+
 namespace TrackMuvi.Services.BackgroundSync;
 
 /// <summary>
@@ -8,4 +10,9 @@ namespace TrackMuvi.Services.BackgroundSync;
 public interface IReleaseCheckService
 {
     Task RunCheckAsync(CancellationToken ct = default);
+
+    /// <summary>Corre RunCheckAsync y devuelve lo que cae exactamente hoy, para mostrar un aviso
+    /// dentro de la app (Inicio) como red de seguridad si la notificación push no llegó a tiempo
+    /// (p. ej. la app no se abrió entre el episodio anterior y hoy, ver ReleaseCheckService).</summary>
+    Task<IReadOnlyList<TodayReleaseDto>> GetTodayReleasesAsync(CancellationToken ct = default);
 }

@@ -1,6 +1,9 @@
 @page "/"
 @inject ITrackMuviApiClient Api
 @inject IPersonalListService PersonalList
+@inject IReleaseCheckService ReleaseCheck
+@inject NavigationManager Nav
+@inject AppState State
 
 <PageHeader Title="Inicio" />
 
@@ -14,6 +17,26 @@ else if (_error is not null)
 }
 else
 {
+    @if (_todayReleases.Count > 0)
+    {
+        <section class="section-container" style="margin-top:20px;">
+            <div class="section-header"><h2 class="section-title">Hoy</h2></div>
+            <div class="row-list">
+                @foreach (var item in _todayReleases)
+                {
+                    <div class="row-card" @onclick="() => GoToDetail(item.Key)">
+                        <div class="row-thumb" style="background-image:url('@TmdbImage.Poster(item.PosterPath, "w154")')"></div>
+                        <div class="row-meta">
+                            <strong>@item.Title</strong>
+                            <div class="sub">@TodaySubtitle(item)</div>
+                        </div>
+                        <div class="row-right" style="color:var(--gold);">HOY</div>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
     <section class="section-container" style="margin-top:20px;">
         <div class="section-header"><h2 class="section-title">Tendencias de la semana</h2></div>
         <div class="trending-scroll">
@@ -60,6 +83,7 @@ else
     private List<TitleSummaryDto> _trending = [];
     private List<TitleSummaryDto> _discoverMore = [];
     private List<TitleSummaryDto> _following = [];
+    private List<TodayReleaseDto> _todayReleases = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -75,6 +99,16 @@ else
             var followingKeys = await PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
             var details = await Task.WhenAll(followingKeys.Select(k => Api.GetTitleDetailAsync(k)));
             _following = details.Where(d => d is not null).Select(d => d!.ToSummary()).ToList();
+
+            // Red de seguridad si la notificación push no llegó a tiempo (ver ReleaseCheckService).
+            try
+            {
+                _todayReleases = (await ReleaseCheck.GetTodayReleasesAsync()).ToList();
+            }
+            catch
+            {
+                // sin red/API: la app sigue siendo usable sin el aviso "Hoy".
+            }
         }
         catch (Exception ex)
         {
@@ -85,4 +119,11 @@ else
             _loading = false;
         }
     }
+
+    private static string TodaySubtitle(TodayReleaseDto item) => item.Type == TitleType.Series
+        ? $"S{item.SeasonNumber:00}E{item.EpisodeNumber:00}" +
+          (item.EpisodeName is not null ? $" · \"{item.EpisodeName}\"" : "") + " sale hoy"
+        : "Se estrena hoy";
+
+    private void GoToDetail(string key) => DetailNavigation.GoToDetail(Nav, State, key);
 }
