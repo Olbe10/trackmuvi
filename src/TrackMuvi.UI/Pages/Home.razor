@@ -79,7 +79,13 @@ else
     @if (_discoverMore.Count > 0)
     {
         <section class="section-container" style="margin-bottom:50px;">
-            <div class="section-header"><h2 class="section-title">Descubre algo nuevo</h2></div>
+            <div class="section-header">
+                <h2 class="section-title">Descubre algo nuevo</h2>
+                @if (_hasRecommendationBasis)
+                {
+                    <a style="color:var(--accent); font-size:13px; font-weight:600; cursor:pointer;" @onclick="GoToRecommendations">Ver más</a>
+                }
+            </div>
             <div class="poster-scroll">
                 @foreach (var item in _discoverMore)
                 {
@@ -101,6 +107,7 @@ else
     private string? _error;
     private List<TitleSummaryDto> _trending = [];
     private List<TitleSummaryDto> _discoverMore = [];
+    private bool _hasRecommendationBasis;
     private List<TitleSummaryDto> _following = [];
     private int _followingTotalCount;
     private List<TodayReleaseDto> _todayReleases = [];
@@ -131,6 +138,7 @@ else
             var alreadyKnown = favoriteKeysTask.Result.Concat(watchedKeysTask.Result)
                 .Concat(wantKeysTask.Result).Concat(followingKeysTask.Result).ToHashSet();
 
+            _hasRecommendationBasis = basis.Count > 0;
             _discoverMore = basis.Count > 0
                 ? (await Api.GetRecommendationsAsync(basis))
                     .Where(t => !alreadyKnown.Contains(t.Key))
@@ -190,4 +198,6 @@ else
         State.ListTab = "following";
         Nav.NavigateTo("/mylist");
     }
+
+    private void GoToRecommendations() => Nav.NavigateTo("/recommendations");
 }

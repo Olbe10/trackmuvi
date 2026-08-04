@@ -1,0 +1,102 @@
+@page "/recommendations"
+@inject ITrackMuviApiClient Api
+@inject IPersonalListService PersonalList
+@inject NavigationManager Nav
+
+<header class="app-bar">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <button class="icon-btn" @onclick="GoBack"><span class="material-symbols-outlined">arrow_back</span></button>
+        <div class="app-title">Descubre algo nuevo</div>
+    </div>
+</header>
+
+<CategoryChips Items="_categories" Selected="@_selectedGenre" SelectedChanged="OnGenreChanged" />
+
+@if (_loading)
+{
+    <div class="loading-spinner">Cargando...</div>
+}
+else if (_error is not null)
+{
+    <div class="error-box">@_error</div>
+}
+else if (_filteredItems.Count == 0)
+{
+    <div class="empty">Sin resultados con este filtro.</div>
+}
+else
+{
+    <div class="row-list" style="margin-bottom:30px;">
+        @foreach (var item in _filteredItems)
+        {
+            <RowCard Title="@item" ShowRating="true" />
+        }
+    </div>
+}
+
+@code {
+    // Mismo criterio que Inicio para armar la base de recomendación (ver Home.razor).
+    private const int RecommendationBasisCount = 6;
+
+    private readonly List<ChipItem> _categories = [new("all", "Todo")];
+    private readonly List<TitleSummaryDto> _allItems = [];
+
+    private string _selectedGenre = "all";
+    private bool _loading = true;
+    private string? _error;
+    private List<TitleSummaryDto> _filteredItems = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var movieGenresTask = Api.GetGenresAsync(TitleType.Movie);
+            var tvGenresTask = Api.GetGenresAsync(TitleType.Series);
+            var favoriteKeysTask = PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Favorite);
+            var watchedKeysTask = PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Watched);
+            var wantKeysTask = PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Want);
+            var followingKeysTask = PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
+
+            await Task.WhenAll(movieGenresTask, tvGenresTask, favoriteKeysTask, watchedKeysTask, wantKeysTask, followingKeysTask);
+
+            foreach (var name in movieGenresTask.Result.Concat(tvGenresTask.Result).Select(g => g.Name).Distinct().OrderBy(n => n))
+            {
+                _categories.Add(new ChipItem(name, name));
+            }
+
+            var basis = favoriteKeysTask.Result.Concat(watchedKeysTask.Result)
+                .Distinct().Take(RecommendationBasisCount).ToList();
+
+            if (basis.Count > 0)
+            {
+                var alreadyKnown = favoriteKeysTask.Result.Concat(watchedKeysTask.Result)
+                    .Concat(wantKeysTask.Result).Concat(followingKeysTask.Result).ToHashSet();
+
+                var recommendations = await Api.GetRecommendationsAsync(basis);
+                _allItems.AddRange(recommendations.Where(t => !alreadyKnown.Contains(t.Key)));
+            }
+
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo cargar: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnGenreChanged(string genre)
+    {
+        _selectedGenre = genre;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter() => _filteredItems = _selectedGenre == "all"
+        ? _allItems.ToList()
+        : _allItems.Where(t => t.PrimaryGenre == _selectedGenre).ToList();
+
+    private void GoBack() => Nav.NavigateTo("/");
+}

@@ -92,7 +92,10 @@ public class TitlesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
                 .Where(t => !basisKeys.Contains(t.Key))
                 .DistinctBy(t => t.Key)
                 .OrderByDescending(t => t.Popularity)
-                .Take(20)
+                // Más que los ~6-8 que se muestran en el preview de Inicio: este mismo endpoint
+                // alimenta también el catálogo de "Ver más" con filtro de género, que necesita
+                // margen para no vaciarse al filtrar.
+                .Take(60)
                 .ToList();
         });
 
