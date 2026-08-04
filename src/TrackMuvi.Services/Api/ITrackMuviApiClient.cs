@@ -21,6 +21,9 @@ public interface ITrackMuviApiClient
     /// images), para listas/resúmenes que no necesitan la ficha completa.</summary>
     Task<TitleDetailDto?> GetTitleDetailAsync(string titleKey, bool full = true, CancellationToken ct = default);
     Task<IReadOnlyList<UpcomingEpisodeDto>> GetNextEpisodesAsync(IReadOnlyList<string> seriesKeys, CancellationToken ct = default);
+    /// <summary>"Descubre algo nuevo": recomendaciones de TMDb a partir de un puñado de títulos base
+    /// (favoritas/vistas del usuario).</summary>
+    Task<IReadOnlyList<TitleSummaryDto>> GetRecommendationsAsync(IReadOnlyList<string> basisTitleKeys, CancellationToken ct = default);
     Task<SeasonDto?> GetSeasonAsync(string seriesKey, int seasonNumber, CancellationToken ct = default);
     Task<IReadOnlyList<GenreDto>> GetGenresAsync(TitleType type, CancellationToken ct = default);
 }

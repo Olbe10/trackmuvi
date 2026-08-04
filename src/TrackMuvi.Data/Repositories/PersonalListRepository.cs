@@ -45,7 +45,10 @@ public class PersonalListRepository(TrackMuviDbContext db) : IPersonalListReposi
             _ => throw new ArgumentOutOfRangeException(nameof(flag))
         };
 
-        return await query.Select(e => e.TitleKey).ToListAsync(ct);
+        // Igual que GetViewHistoryAsync: el provider de SQLite no traduce ORDER BY sobre
+        // DateTimeOffset, así que se ordena en memoria (la lista siempre es chica, por usuario).
+        var entities = await query.ToListAsync(ct);
+        return entities.OrderByDescending(e => e.UpdatedAt).Select(e => e.TitleKey).ToList();
     }
 
     public async Task AddViewHistoryEntryAsync(string titleKey, DateTimeOffset watchedAt, CancellationToken ct = default)

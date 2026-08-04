@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using TrackMuvi.Api.Mapping;
 using TrackMuvi.Api.Options;
@@ -10,7 +11,7 @@ namespace TrackMuvi.Api.Controllers;
 
 [ApiController]
 [Route("api/titles")]
-public class TitlesController(ITmdbClient tmdb, IOptions<TmdbOptions> options) : ControllerBase
+public class TitlesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<TmdbOptions> options, IMemoryCache cache) : ControllerBase
 {
     /// <summary>
     /// Ficha de un título. Con full=true (default, pantalla Detail): poster, sinopsis, reparto,
@@ -46,6 +47,56 @@ public class TitlesController(ITmdbClient tmdb, IOptions<TmdbOptions> options) :
     {
         var (type, tmdbId) = TitleKey.Parse(titleKey);
         return Get(type == TitleType.Movie ? "movie" : "series", tmdbId, full, ct);
+    }
+
+    /// <summary>
+    /// "Descubre algo nuevo" (Inicio): recomendaciones de TMDb ("porque viste/marcaste X") a partir
+    /// de un puñado de títulos base que manda el cliente (sus favoritas/vistas más recientes — Mi
+    /// Lista vive en SQLite local, no en esta API). Se agregan todas, se sacan los propios títulos
+    /// base y duplicados, y se ordena por popularidad.
+    /// </summary>
+    [HttpPost("recommendations")]
+    public async Task<ActionResult<IReadOnlyList<TitleSummaryDto>>> Recommendations(
+        [FromBody] List<string> basisTitleKeys, CancellationToken ct)
+    {
+        if (basisTitleKeys.Count == 0) return Ok(Array.Empty<TitleSummaryDto>());
+
+        var cacheKey = "titles:recommendations:" + string.Join(',', basisTitleKeys.OrderBy(k => k));
+        var result = await cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
+
+            var movieGenres = await genreCache.GetMovieGenresAsync(ct);
+            var tvGenres = await genreCache.GetTvGenresAsync(ct);
+
+            var perBasis = await Task.WhenAll(basisTitleKeys.Select(async key =>
+            {
+                var (type, tmdbId) = TitleKey.Parse(key);
+                if (type == TitleType.Movie)
+                {
+                    var response = await tmdb.GetMovieRecommendationsAsync(tmdbId, ct);
+                    return response.Results
+                        .Where(m => m.OriginalLanguage == "en")
+                        .Select(m => TitleMapper.MapMovieSummary(m, movieGenres));
+                }
+
+                var tvResponse = await tmdb.GetTvRecommendationsAsync(tmdbId, ct);
+                return tvResponse.Results
+                    .Where(t => t.OriginalLanguage == "en")
+                    .Select(t => TitleMapper.MapTvSummary(t, tvGenres));
+            }));
+
+            var basisKeys = basisTitleKeys.ToHashSet();
+            return perBasis
+                .SelectMany(r => r)
+                .Where(t => !basisKeys.Contains(t.Key))
+                .DistinctBy(t => t.Key)
+                .OrderByDescending(t => t.Popularity)
+                .Take(20)
+                .ToList();
+        });
+
+        return Ok(result);
     }
 
     /// <summary>Episodios de una temporada (pantalla Detail de series, tab de episodios).</summary>

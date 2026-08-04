@@ -38,7 +38,7 @@ else
     }
 
     <section class="section-container" style="margin-top:20px;">
-        <div class="section-header"><h2 class="section-title">Tendencias de la semana</h2></div>
+        <div class="section-header"><h2 class="section-title">Tendencias del mes</h2></div>
         <div class="trending-scroll">
             @{ var rank = 1; }
             @foreach (var item in _trending)
@@ -76,19 +76,26 @@ else
         }
     </section>
 
-    <section class="section-container" style="margin-bottom:50px;">
-        <div class="section-header"><h2 class="section-title">Descubre algo nuevo</h2></div>
-        <div class="poster-scroll">
-            @foreach (var item in _discoverMore)
-            {
-                <PosterCard Title="@item" />
-            }
-        </div>
-    </section>
+    @if (_discoverMore.Count > 0)
+    {
+        <section class="section-container" style="margin-bottom:50px;">
+            <div class="section-header"><h2 class="section-title">Descubre algo nuevo</h2></div>
+            <div class="poster-scroll">
+                @foreach (var item in _discoverMore)
+                {
+                    <PosterCard Title="@item" />
+                }
+            </div>
+        </section>
+    }
 }
 
 @code {
     private const int FollowingPreviewCount = 5;
+    private const int DiscoverMoreCount = 12;
+    // Cuántos títulos favoritos/vistos como máximo se mandan como base a /recommendations:
+    // cada uno es una llamada aparte a TMDb del lado del servidor.
+    private const int RecommendationBasisCount = 6;
 
     private bool _loading = true;
     private string? _error;
@@ -107,13 +114,31 @@ else
             var moviesTask = Api.GetTrendingMoviesAsync();
             var tvTask = Api.GetTrendingTvAsync();
             var followingKeysTask = PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Following);
+            var favoriteKeysTask = PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Favorite);
+            var watchedKeysTask = PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Watched);
+            var wantKeysTask = PersonalList.GetKeysByFlagAsync(PersonalStatusFlag.Want);
             var todayReleasesTask = LoadTodayReleasesAsync();
 
-            await Task.WhenAll(moviesTask, tvTask, followingKeysTask, todayReleasesTask);
+            await Task.WhenAll(moviesTask, tvTask, followingKeysTask, favoriteKeysTask, watchedKeysTask, wantKeysTask, todayReleasesTask);
 
             var combined = moviesTask.Result.Concat(tvTask.Result).OrderByDescending(t => t.Popularity).ToList();
             _trending = combined.Take(4).ToList();
-            _discoverMore = combined.Skip(4).Take(12).ToList();
+
+            // Base para "porque viste/marcaste X": favoritas primero, después vistas (ambas ya vienen
+            // de más reciente a más vieja), sin repetir.
+            var basis = favoriteKeysTask.Result.Concat(watchedKeysTask.Result)
+                .Distinct().Take(RecommendationBasisCount).ToList();
+            var alreadyKnown = favoriteKeysTask.Result.Concat(watchedKeysTask.Result)
+                .Concat(wantKeysTask.Result).Concat(followingKeysTask.Result).ToHashSet();
+
+            _discoverMore = basis.Count > 0
+                ? (await Api.GetRecommendationsAsync(basis))
+                    .Where(t => !alreadyKnown.Contains(t.Key))
+                    .Take(DiscoverMoreCount)
+                    .ToList()
+                // Todavía no hay suficiente historial para recomendar algo personalizado: se
+                // mantiene el comportamiento anterior (sobras de tendencias) en vez de dejarlo vacío.
+                : combined.Skip(4).Take(DiscoverMoreCount).ToList();
 
             // Esto sí depende de followingKeysTask, así que recién arranca cuando ese ya resolvió.
             var details = await Task.WhenAll(followingKeysTask.Result.Select(k => Api.GetTitleDetailAsync(k, full: false)));

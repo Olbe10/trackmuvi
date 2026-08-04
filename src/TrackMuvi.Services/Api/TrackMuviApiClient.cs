@@ -50,6 +50,15 @@ public class TrackMuviApiClient(HttpClient httpClient) : ITrackMuviApiClient
         return await response.Content.ReadFromJsonAsync<List<UpcomingEpisodeDto>>(cancellationToken: ct) ?? [];
     }
 
+    public async Task<IReadOnlyList<TitleSummaryDto>> GetRecommendationsAsync(
+        IReadOnlyList<string> basisTitleKeys, CancellationToken ct = default)
+    {
+        if (basisTitleKeys.Count == 0) return [];
+        var response = await httpClient.PostAsJsonAsync("api/titles/recommendations", basisTitleKeys, ct);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<List<TitleSummaryDto>>(cancellationToken: ct) ?? [];
+    }
+
     public async Task<SeasonDto?> GetSeasonAsync(string seriesKey, int seasonNumber, CancellationToken ct = default)
     {
         var (_, tmdbId) = TitleKey.Parse(seriesKey);

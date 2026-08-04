@@ -21,6 +21,7 @@ public class TmdbTvSummary
     [JsonPropertyName("popularity")] public double Popularity { get; set; }
     [JsonPropertyName("vote_average")] public double VoteAverage { get; set; }
     [JsonPropertyName("genre_ids")] public List<int> GenreIds { get; set; } = [];
+    [JsonPropertyName("original_language")] public string? OriginalLanguage { get; set; }
 }
 
 public class TmdbTvDetail

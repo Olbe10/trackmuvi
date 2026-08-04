@@ -29,6 +29,12 @@ public interface ITmdbClient
 
     Task<TmdbMovieListResponse> GetTrendingMoviesAsync(CancellationToken ct);
     Task<TmdbTvListResponse> GetTrendingTvAsync(CancellationToken ct);
+
+    /// <summary>"Porque viste/marcaste X" — recomendaciones de TMDb basadas en un título puntual,
+    /// usadas para armar "Descubre algo nuevo" a partir de lo que el usuario ya marcó como
+    /// favorita/vista.</summary>
+    Task<TmdbMovieListResponse> GetMovieRecommendationsAsync(int tmdbId, CancellationToken ct);
+    Task<TmdbTvListResponse> GetTvRecommendationsAsync(int tmdbId, CancellationToken ct);
     Task<TmdbMovieDetail?> GetMovieDetailAsync(int tmdbId, CancellationToken ct);
 
     /// <summary>
