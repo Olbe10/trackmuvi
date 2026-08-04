@@ -17,6 +17,7 @@ public class TmdbReleaseDateEntry
 {
     [JsonPropertyName("certification")] public string Certification { get; set; } = string.Empty;
     [JsonPropertyName("type")] public int Type { get; set; }
+    [JsonPropertyName("release_date")] public string? ReleaseDate { get; set; }
 }
 
 public class TmdbContentRatingsResponse

@@ -82,7 +82,7 @@ public static class TitleMapper
             // Si ya está disponible en streaming/alquiler/compra, mostramos esa plataforma real;
             // si no hay ninguna todavía (recién estrenada o solo en cines), cae a "Cine".
             PrimaryPlatformLabel: watchProviders.FirstOrDefault()?.ProviderName ?? "Cine",
-            ReleaseDate: ParseDate(d.ReleaseDate),
+            ReleaseDate: ExtractRegionalReleaseDate(d.ReleaseDates, region, d.ReleaseDate),
             Seasons: null,
             DurationMinutes: d.Runtime,
             Rating: ExtractMovieCertification(d.ReleaseDates, region),
@@ -167,6 +167,25 @@ public static class TitleMapper
         return entry?.ReleaseDates.Select(r => r.Certification).FirstOrDefault(c => !string.IsNullOrWhiteSpace(c));
     }
 
+    /// <summary>
+    /// La fecha de estreno de la región (mismo criterio que discover/movie con region+with_release_type=2|3
+    /// en TmdbClient): entre los estrenos de cine (tipo 2=limitado, 3=amplio) registrados para esa región,
+    /// la más temprana. Si TMDb no tiene fecha de cine para la región (ej. sin estreno en cines ahí), cae al
+    /// "release_date" global de la película.
+    /// </summary>
+    private static DateOnly? ExtractRegionalReleaseDate(TmdbReleaseDatesResponse? releaseDates, string region, string? fallback)
+    {
+        var entry = releaseDates?.Results.FirstOrDefault(r => r.CountryCode == region);
+        var regional = entry?.ReleaseDates
+            .Where(r => r.Type is 2 or 3)
+            .Select(r => ParseDate(r.ReleaseDate))
+            .Where(d => d is not null)
+            .OrderBy(d => d)
+            .FirstOrDefault();
+
+        return regional ?? ParseDate(fallback);
+    }
+
     private static string? ExtractTvCertification(TmdbContentRatingsResponse? contentRatings, string region)
     {
         var entry = contentRatings?.Results.FirstOrDefault(r => r.CountryCode == region);
@@ -196,6 +215,8 @@ public static class TitleMapper
     private static List<string> ExtractGallery(TmdbImagesResponse? images) =>
         images?.Backdrops.Take(3).Select(b => b.FilePath).ToList() ?? [];
 
+    // TMDb devuelve "yyyy-MM-dd" para el release_date suelto, pero "yyyy-MM-ddTHH:mm:ss.sssZ"
+    // dentro de release_dates[].release_date; se corta en la "T" para aceptar ambos formatos.
     private static DateOnly? ParseDate(string? raw) =>
-        !string.IsNullOrWhiteSpace(raw) && DateOnly.TryParse(raw, out var date) ? date : null;
+        !string.IsNullOrWhiteSpace(raw) && DateOnly.TryParse(raw.Split('T')[0], out var date) ? date : null;
 }

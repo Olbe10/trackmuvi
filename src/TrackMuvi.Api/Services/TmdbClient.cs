@@ -26,6 +26,10 @@ public class TmdbClient(HttpClient httpClient, IOptions<TmdbOptions> options) : 
             $"&with_release_type={Uri.EscapeDataString("2|3")}" +
             $"&primary_release_date.gte={from:yyyy-MM-dd}" +
             $"&primary_release_date.lte={to:yyyy-MM-dd}" +
+            // "region" solo define qué fecha de estreno local cuenta, no filtra por origen: sin
+            // esto entraban estrenos árabes/chinos/coreanos/indios que también tienen alguna fecha
+            // de release en US (festival, limitado, etc.). Igual criterio que ComingSoon abajo.
+            $"&with_original_language=en" +
             $"&page={page}&language={_options.DefaultLanguage}&region={_options.DefaultRegion}",
             ct);
 
