@@ -117,8 +117,10 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _selectedDate = Today;
-        _currentMonth = new DateOnly(Today.Year, Today.Month, 1);
+        // Si venimos de volver atrás desde una ficha de detalle, retoma el mes/día que se estaba
+        // viendo en vez de resetear a hoy (el componente se recrea entero al renavegar a /calendar).
+        _selectedDate = State.CalendarSelectedDate ?? Today;
+        _currentMonth = State.CalendarMonth ?? new DateOnly(Today.Year, Today.Month, 1);
 
         try
         {
@@ -246,10 +248,12 @@ else
     {
         var monthChanged = date.Month != _currentMonth.Month || date.Year != _currentMonth.Year;
         _selectedDate = date;
+        State.CalendarSelectedDate = date;
 
         if (monthChanged)
         {
             _currentMonth = new DateOnly(date.Year, date.Month, 1);
+            State.CalendarMonth = _currentMonth;
             await LoadMoviesForCurrentMonthAsync();
         }
 
@@ -259,12 +263,14 @@ else
     private async Task PrevMonth()
     {
         _currentMonth = _currentMonth.AddMonths(-1);
+        State.CalendarMonth = _currentMonth;
         await LoadMoviesForCurrentMonthAsync();
     }
 
     private async Task NextMonth()
     {
         _currentMonth = _currentMonth.AddMonths(1);
+        State.CalendarMonth = _currentMonth;
         await LoadMoviesForCurrentMonthAsync();
     }
 
