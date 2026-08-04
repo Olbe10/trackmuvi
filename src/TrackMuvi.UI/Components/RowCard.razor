@@ -13,11 +13,12 @@
             </span>
         </div>
     </div>
-    <div class="row-right">@RelativeLabel()</div>
+    <div class="row-right">@(ShowRating && Title.VoteAverage > 0 ? $"★ {Title.VoteAverage:0.0}" : RelativeLabel())</div>
 </div>
 
 @code {
     [Parameter, EditorRequired] public TitleSummaryDto Title { get; set; } = null!;
+    [Parameter] public bool ShowRating { get; set; }
 
     private void GoToDetail() => DetailNavigation.GoToDetail(Nav, State, Title.Key);
 

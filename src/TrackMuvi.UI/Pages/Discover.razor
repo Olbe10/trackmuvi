@@ -74,6 +74,22 @@ else
             }
         </section>
 
+        @if (_filteredTopRated.Count > 0)
+        {
+            <section class="section-container">
+                <div class="section-header">
+                    <h2 class="section-title">Top en críticas</h2>
+                    <a style="color:var(--accent); font-size:13px; font-weight:600; cursor:pointer;" @onclick="GoToTopRated">Ver más</a>
+                </div>
+                <div class="poster-scroll">
+                    @foreach (var item in _filteredTopRated.Take(TopRatedPreviewCount))
+                    {
+                        <PosterCard Title="@item" FlagLabel="@(item.VoteAverage > 0 ? $"★ {item.VoteAverage:0.0}" : null)" />
+                    }
+                </div>
+            </section>
+        }
+
         @if (_filteredComingSoon.Count > 0)
         {
             <section class="section-container" style="margin-bottom:50px;">
@@ -97,6 +113,7 @@ else
 
 @code {
     private const int ComingSoonPreviewCount = 6;
+    private const int TopRatedPreviewCount = 6;
 
     private readonly List<ChipItem> _categories = [new("all", "Todo"), new("marvel", "Marvel"), new("dc", "DC"), new("independiente", "Independiente")];
     private readonly Dictionary<string, string> _universeCache = new();
@@ -108,11 +125,13 @@ else
     private List<TitleSummaryDto> _trending = [];
     private List<TitleSummaryDto> _upcoming = [];
     private List<TitleSummaryDto> _comingSoon = [];
+    private List<TitleSummaryDto> _topRated = [];
     private List<TitleSummaryDto> _searchResults = [];
 
     private List<TitleSummaryDto> _filteredTrending = [];
     private List<TitleSummaryDto> _filteredUpcoming = [];
     private List<TitleSummaryDto> _filteredComingSoon = [];
+    private List<TitleSummaryDto> _filteredTopRated = [];
 
     private Timer? _debounceTimer;
     private bool IsSearching => !string.IsNullOrWhiteSpace(State.SearchQuery);
@@ -133,6 +152,7 @@ else
             _trending = trendingMovies.Concat(trendingTv).OrderByDescending(t => t.Popularity).ToList();
             _upcoming = (await Api.GetUpcomingMoviesAsync()).OrderBy(t => t.ReleaseDate).Take(6).ToList();
             _comingSoon = (await Api.GetComingSoonMoviesAsync()).ToList();
+            _topRated = (await Api.GetTopRatedMoviesAsync()).ToList();
 
             if (IsSearching)
             {
@@ -198,6 +218,7 @@ else
         _filteredTrending = await FilterAsync(trendingSource);
         _filteredUpcoming = IsSearching ? [] : await FilterAsync(_upcoming);
         _filteredComingSoon = IsSearching ? [] : await FilterAsync(_comingSoon);
+        _filteredTopRated = IsSearching ? [] : await FilterAsync(_topRated);
     }
 
     private async Task<List<TitleSummaryDto>> FilterAsync(IReadOnlyList<TitleSummaryDto> source)
@@ -228,6 +249,7 @@ else
     }
 
     private void GoToComingSoon() => Nav.NavigateTo("/coming-soon");
+    private void GoToTopRated() => Nav.NavigateTo("/top-rated");
 
     public void Dispose() => _debounceTimer?.Dispose();
 }

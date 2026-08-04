@@ -24,6 +24,9 @@ public class TrackMuviApiClient(HttpClient httpClient) : ITrackMuviApiClient
     public async Task<IReadOnlyList<TitleSummaryDto>> GetTrendingMoviesAsync(CancellationToken ct = default) =>
         await httpClient.GetFromJsonAsync<List<TitleSummaryDto>>("api/movies/trending", ct) ?? [];
 
+    public async Task<IReadOnlyList<TitleSummaryDto>> GetTopRatedMoviesAsync(int page = 1, CancellationToken ct = default) =>
+        await httpClient.GetFromJsonAsync<List<TitleSummaryDto>>($"api/movies/top-rated?page={page}", ct) ?? [];
+
     public async Task<IReadOnlyList<TitleSummaryDto>> GetComingSoonMoviesAsync(CancellationToken ct = default) =>
         await httpClient.GetFromJsonAsync<List<TitleSummaryDto>>("api/movies/coming-soon", ct) ?? [];
 

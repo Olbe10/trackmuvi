@@ -1,0 +1,151 @@
+@page "/top-rated"
+@inject ITrackMuviApiClient Api
+@inject NavigationManager Nav
+
+<header class="app-bar">
+    <div style="display:flex; align-items:center; gap:12px;">
+        <button class="icon-btn" @onclick="GoBack"><span class="material-symbols-outlined">arrow_back</span></button>
+        <div class="app-title">Top en críticas</div>
+    </div>
+</header>
+
+<CategoryChips Items="_categories" Selected="@_selectedCategory" SelectedChanged="OnCategoryChanged" />
+
+@if (_loading)
+{
+    <div class="loading-spinner">Cargando...</div>
+}
+else if (_error is not null)
+{
+    <div class="error-box">@_error</div>
+}
+else if (_filteredItems.Count == 0)
+{
+    <div class="empty">Sin resultados con este filtro.</div>
+}
+else
+{
+    <div class="row-list" style="margin-bottom:20px;">
+        @foreach (var item in _filteredItems)
+        {
+            <RowCard Title="@item" ShowRating="true" />
+        }
+    </div>
+
+    @if (_hasMore)
+    {
+        <div style="display:flex; justify-content:center; margin-bottom:30px;">
+            <button class="chip" disabled="@_loadingMore" @onclick="LoadMoreAsync">
+                @(_loadingMore ? "Cargando..." : "Cargar más")
+            </button>
+        </div>
+    }
+}
+
+@code {
+    // Mismas categorías que la pestaña Descubrir (Marvel/DC/Independiente + géneros).
+    private readonly List<ChipItem> _categories = [new("all", "Todo"), new("marvel", "Marvel"), new("dc", "DC"), new("independiente", "Independiente")];
+    private readonly Dictionary<string, string> _universeCache = new();
+    private readonly List<TitleSummaryDto> _allItems = [];
+
+    private string _selectedCategory = "all";
+    private int _nextPage = 1;
+    private bool _hasMore = true;
+    private bool _loading = true;
+    private bool _loadingMore;
+    private string? _error;
+    private List<TitleSummaryDto> _filteredItems = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var movieGenres = await Api.GetGenresAsync(TitleType.Movie);
+            foreach (var genre in movieGenres.OrderBy(g => g.Name))
+            {
+                _categories.Add(new ChipItem(genre.Name, genre.Name));
+            }
+
+            await LoadNextPageAsync();
+            ApplyFilter();
+        }
+        catch (Exception ex)
+        {
+            _error = $"No se pudo cargar: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task LoadNextPageAsync()
+    {
+        var page = await Api.GetTopRatedMoviesAsync(_nextPage);
+        _hasMore = page.Count > 0;
+        _allItems.AddRange(page);
+        _nextPage++;
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        _loadingMore = true;
+        try
+        {
+            await LoadNextPageAsync();
+
+            if (_selectedCategory is "marvel" or "dc" or "independiente")
+                await EnsureUniverseResolvedAsync();
+
+            ApplyFilter();
+        }
+        finally
+        {
+            _loadingMore = false;
+        }
+    }
+
+    private async Task OnCategoryChanged(string category)
+    {
+        _selectedCategory = category;
+
+        if (category is "marvel" or "dc" or "independiente")
+        {
+            await EnsureUniverseResolvedAsync();
+        }
+
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        if (_selectedCategory == "all")
+        {
+            _filteredItems = _allItems.DistinctBy(t => t.Key).ToList();
+            return;
+        }
+
+        if (_selectedCategory is "marvel" or "dc" or "independiente")
+        {
+            var label = _selectedCategory switch { "marvel" => "Marvel", "dc" => "DC", _ => "Independiente" };
+            _filteredItems = _allItems.DistinctBy(t => t.Key).Where(t => _universeCache.GetValueOrDefault(t.Key) == label).ToList();
+            return;
+        }
+
+        _filteredItems = _allItems.DistinctBy(t => t.Key).Where(t => t.PrimaryGenre == _selectedCategory).ToList();
+    }
+
+    private async Task EnsureUniverseResolvedAsync()
+    {
+        var missing = _allItems.Where(t => !_universeCache.ContainsKey(t.Key)).ToList();
+        if (missing.Count == 0) return;
+
+        var details = await Task.WhenAll(missing.Select(t => Api.GetTitleDetailAsync(t.Key, full: false)));
+        foreach (var d in details)
+        {
+            if (d is not null) _universeCache[d.Key] = d.Universe ?? "Independiente";
+        }
+    }
+
+    private void GoBack() => Nav.NavigateTo("/discover");
+}

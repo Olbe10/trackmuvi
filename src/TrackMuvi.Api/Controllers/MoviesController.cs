@@ -68,6 +68,22 @@ public class MoviesController(ITmdbClient tmdb, GenreCache genreCache, IOptions<
     /// "conocida" dado que las grandes producciones no angloparlantes casi siempre ya tienen fecha
     /// confirmada para cuando alcanzan este nivel de popularidad.
     /// </summary>
+    /// <summary>Top en críticas (nota de TMDb), catálogo paginado para la pestaña Descubrir.
+    /// Se cachea 6h por página: el ranking por vote_average casi no se mueve de un día a otro.</summary>
+    [HttpGet("top-rated")]
+    public async Task<ActionResult<IReadOnlyList<TitleSummaryDto>>> TopRated([FromQuery] int page, CancellationToken ct)
+    {
+        var effectivePage = page < 1 ? 1 : page;
+        var result = await cache.GetOrCreateAsync($"movies:top-rated:{effectivePage}", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
+            var response = await tmdb.DiscoverTopRatedMoviesAsync(effectivePage, ct);
+            var genres = await genreCache.GetMovieGenresAsync(ct);
+            return response.Results.Select(m => TitleMapper.MapMovieSummary(m, genres)).ToList();
+        });
+        return Ok(result);
+    }
+
     [HttpGet("coming-soon")]
     public async Task<ActionResult<IReadOnlyList<TitleSummaryDto>>> ComingSoon(CancellationToken ct)
     {

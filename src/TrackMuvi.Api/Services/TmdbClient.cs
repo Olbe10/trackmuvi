@@ -41,6 +41,18 @@ public class TmdbClient(HttpClient httpClient, IOptions<TmdbOptions> options) : 
             $"&page={page}&language={_options.DefaultLanguage}&region={_options.DefaultRegion}",
             ct);
 
+    public Task<TmdbMovieListResponse> DiscoverTopRatedMoviesAsync(int page, CancellationToken ct) =>
+        GetAsync<TmdbMovieListResponse>(
+            "discover/movie" +
+            $"?sort_by=vote_average.desc" +
+            // Sin este piso, cualquier película con 3-4 votos y 10/10 gana sobre clásicos con
+            // decenas de miles de votos. 300 es el mismo orden de magnitud que usa TMDb en su propio
+            // top_rated.
+            $"&vote_count.gte=300" +
+            $"&with_original_language=en" +
+            $"&page={page}&language={_options.DefaultLanguage}&region={_options.DefaultRegion}",
+            ct);
+
     public Task<TmdbMovieListResponse> GetTrendingMoviesAsync(CancellationToken ct) =>
         GetAsync<TmdbMovieListResponse>($"trending/movie/week?language={_options.DefaultLanguage}", ct);
 

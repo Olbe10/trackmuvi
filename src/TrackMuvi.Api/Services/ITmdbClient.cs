@@ -23,6 +23,10 @@ public interface ITmdbClient
     /// </summary>
     Task<TmdbMovieListResponse> DiscoverFutureMoviesByPopularityAsync(DateOnly from, int page, CancellationToken ct);
 
+    /// <summary>discover/movie ordenado por nota de crítica (vote_average), para "Top en críticas".
+    /// Se exige un mínimo de votos (ver TmdbClient) para que no gane una película con 3 votos y 10/10.</summary>
+    Task<TmdbMovieListResponse> DiscoverTopRatedMoviesAsync(int page, CancellationToken ct);
+
     Task<TmdbMovieListResponse> GetTrendingMoviesAsync(CancellationToken ct);
     Task<TmdbTvListResponse> GetTrendingTvAsync(CancellationToken ct);
     Task<TmdbMovieDetail?> GetMovieDetailAsync(int tmdbId, CancellationToken ct);
